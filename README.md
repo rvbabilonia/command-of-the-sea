@@ -42,7 +42,7 @@ You are therefore free to arrange the pieces according to your strategy of style
 pieces on the first three (3) rows, you will find six (6) vacant squares. This is to allow for maneuvering and freedom
 of movement when play begins.
 
-![alt text](images/figure a.png "Figure A")
+![alt text](images/Figure_A.png "Figure A")
  
 ## Movement
 
@@ -51,7 +51,7 @@ of movement when play begins.
 3. A move consists of pushing a piece to an adjacent square, either forward, backward or sideward. A diagonal move or a
 move of more than one square is illegal. (See Figure B)
 
-![alt text](images/figure b.png "Figure B")
+![alt text](images/Figure_B.png "Figure B")
 
 ## Challenging
 
