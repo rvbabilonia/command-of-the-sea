@@ -1,0 +1,6 @@
+rootProject.name = 'command-of-the-sea'
+include 'cots-match'
+include 'cots-player'
+include 'cots-domain'
+include 'cots-web'
+

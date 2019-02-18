@@ -1,0 +1,92 @@
+buildscript {
+    repositories {
+        mavenCentral()
+    }
+    dependencies {
+        classpath "org.springframework.boot:spring-boot-gradle-plugin:2.1.3.RELEASE"
+    }
+}
+
+apply plugin: "java"
+apply plugin: "org.springframework.boot"
+
+group = "nz.org.vincenzo"
+version = "1.0-SNAPSHOT"
+description = "The match module"
+sourceCompatibility = "1.8"
+
+repositories {
+    mavenCentral()
+    jcenter()
+}
+
+ext {
+    awsJavaSdkVersion = "1.11.500"
+    awsLambdaJavaCoreVersion = "1.2.0"
+    awsLambdaJavaLog4JVersion = "1.0.0"
+
+    gsonVersion = "2.8.5"
+
+    slf4jVersion = "1.7.25"
+
+    springVersion = "5.1.5.RELEASE"
+    springBootVersion = "2.1.3.RELEASE"
+
+    junitVersion = "5.4.0"
+
+    mockitoVersion = "2.24.0"
+
+    assertjVersion = "3.11.1"
+
+    dynamodbV1Version = "1.0.0"
+}
+
+dependencies {
+    implementation project(':cots-domain')
+
+    // AWS
+    implementation "com.amazonaws:aws-java-sdk-dynamodb:$awsJavaSdkVersion"
+    implementation "com.amazonaws:aws-java-sdk-lambda:$awsJavaSdkVersion"
+    implementation "com.amazonaws:aws-lambda-java-core:$awsLambdaJavaCoreVersion"
+    implementation "com.amazonaws:aws-lambda-java-log4j:$awsLambdaJavaCoreVersion"
+
+    // GSON
+    implementation "com.google.code.gson:gson:$gsonVersion"
+
+    // Logging
+    implementation "org.slf4j:jcl-over-slf4j:$slf4jVersion"
+    implementation "org.slf4j:slf4j-log4j12:$slf4jVersion"
+
+    // Spring
+    implementation "org.springframework:spring-context:$springVersion"
+    implementation "org.springframework.boot:spring-boot:$springBootVersion"
+    implementation "org.springframework.boot:spring-boot-autoconfigure:$springBootVersion"
+
+    // Jupiter (JUnit 5)
+    testImplementation "org.junit.jupiter:junit-jupiter-api:$junitVersion"
+    testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:$junitVersion"
+
+    // Mockito
+    testImplementation "org.mockito:mockito-core:$mockitoVersion"
+    testImplementation "org.mockito:mockito-junit-jupiter:$mockitoVersion"
+
+    // AssertJ assertions
+    testImplementation "org.assertj:assertj-core:$assertjVersion"
+
+    // DynamoDB local
+    testImplementation "by.dev.madhead.aws-junit5:dynamodb-v1:$dynamodbV1Version"
+}
+
+task buildZip(type: Zip) {
+    from compileJava
+    from processResources
+    into('lib') {
+        from configurations.runtime
+    }
+}
+
+build.dependsOn buildZip
+
+bootJar {
+    mainClassName = "nz.org.vincenzo.cots.match.application.MatchApplication"
+}

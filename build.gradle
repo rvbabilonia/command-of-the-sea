@@ -1,0 +1,7 @@
+group = "nz.org.vincenzo"
+version = "1.0-SNAPSHOT"
+description = "Command of the Sea"
+
+tasks.withType(JavaCompile) {
+    options.encoding = "UTF-8"
+}

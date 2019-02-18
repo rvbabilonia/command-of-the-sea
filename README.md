@@ -1,70 +1,114 @@
-Welcome to the AWS CodeStar sample web service
-==============================================
+# Command of the Sea
 
-This sample code helps get you started with a simple Java web service using
-AWS Lambda and Amazon API Gateway.
+Command of the Sea is a turn-based strategy game based on Dover Patrol (Gibson, 1911) and Game of the Generals (Pasola, 
+1970).
 
-What's Here
------------
+## Objective
 
-This sample includes:
+The objective of the game is to eliminate or capture the Command Ship of your opponent. You may also win by successfully
+maneuvering your own Command Ship to the opposite end of the board.
 
-* README.md - this file
-* buildspec.yml - this file is used by AWS CodeBuild to build the web
-  service
-* pom.xml - this file is the Maven Project Object Model for the web service
-* src/main - this directory contains your Java service source files
-* src/test - this directory contains your Java service unit test files
-* template.yml - this file contains the AWS Serverless Application Model (AWS SAM) used
-  by AWS CloudFormation to deploy your application to AWS Lambda and Amazon API
-  Gateway.
-* template-configuration.json - this file contains the project ARN with placeholders used for tagging resources with the project ID
+## Pieces
 
-What Do I Do Next?
-------------------
+![alt text](images/Pieces.png "Pieces")
 
-If you have checked out a local copy of your repository you can start making changes
-to the sample code.  We suggest making a small change to
-/src/main/java/com/aws/codestar/projecttemplates/controller/HelloWorldController.java
-first, so you can see how changes pushed to your project's repository are automatically
-picked up by your project pipeline and deployed to AWS Lambda and Amazon API Gateway. (You can
-watch the pipeline progress on your AWS CodeStar project dashboard.) Once you've seen
-how that works, start developing your own code, and have fun!
+The player's set of pieces or ships with the corresponding classes and functions consists of the following 21 pieces:
 
-To run your tests locally, go to the root directory of the sample code and run the
-`mvn clean compile test` command, which AWS CodeBuild also runs through your `buildspec.yml` file.
+Piece                                         | Total | Function
+--------------------------------------------- | ----- | --------
+Gerald Ford-class Aircraft Carrier            | 1     | Eliminates any lower-class ship including the Littoral Combat Ship and the Command Ship
+Ronald Reagan-subclass Aircraft Carrier       | 1     | Eliminates any lower-class ship including the Littoral Combat Ship and the Command Ship
+Theodore Roosevelt-subclass Aircraft Carrier  | 1     | Eliminates any lower-class ship including the Littoral Combat Ship and the Command Ship
+Nimitz-subclass Aircraft Carrier              | 1     | Eliminates any lower-class ship including the Littoral Combat Ship and the Command Ship
+Enterprise-class Aircraft Carrier             | 1     | Eliminates any lower-class ship including the Littoral Combat Ship and the Command Ship
+America-class Amphibious Assault Ship         | 1     | Eliminates any lower-class ship including the Littoral Combat Ship and the Command Ship
+Wasp-class Amphibious Assault Ship            | 1     | Eliminates any lower-class ship including the Littoral Combat Ship and the Command Ship
+Tarawa-class Amphibious Assault Ship          | 1     | Eliminates any lower-class ship including the Littoral Combat Ship and the Command Ship
+Zumwalt-class Guided Missile Destroyer        | 1     | Eliminates any lower-class ship including the Littoral Combat Ship and the Command Ship
+Arleigh Burke-class Guided Missile Destroyer  | 1     | Eliminates any lower-class ship including the Littoral Combat Ship and the Command Ship
+Kidd-class Guided Missile Destroyer           | 1     | Eliminates any lower-class ship including the Littoral Combat Ship and the Command Ship
+Ticonderoga-class Guided Missile Cruiser      | 1     | Eliminates the Littoral Combat Ship and the Command Ship
+Independence-class Littoral Combat Ship       | 6     | Eliminates the Attack Submarine and the Command Ship
+Blue Ridge-class Command Ship                 | 1     | The Command Ship can be eliminated by any piece including the opposing Command Ship; a Command Ship eliminates the opposing Command Ship when it takes aggressive action by moving into the same square occupied by the other Command Ship
+Virginia-class Attack Submarine               | 2     | Eliminates all ships including the Command Ship except the Littoral Combat Ship
 
-To test your new code during the release process, modify the existing tests or add tests
-to the tests directory. AWS CodeBuild will run the tests during the build stage of your
-project pipeline. You can find the test results in the AWS CodeBuild console.
+NOTE: If both ships are of equal classes, BOTH are eliminated.
 
-Learn more about Maven's [Standard Directory Layout](https://maven.apache.org/guides/introduction/introduction-to-the-standard-directory-layout.html).
+## Preparation
 
-Learn more about managing Maven dependencies with AWS SDK for Java using the
-[Bill of Materials Module](https://aws.amazon.com/blogs/developer/managing-dependencies-with-aws-sdk-for-java-bill-of-materials-module-bom/).
+Spread out the board as illustrated in Figure A. Arrange your respective sets of pieces on the first three (3) rows on
+your end of the board with the printed sides facing you. (See Figure A). There is no predetermined place for any piece.
+You are therefore free to arrange the pieces according to your strategy of style of play. Note that as you arrange your
+pieces on the first three (3) rows, you will find six (6) vacant squares. This is to allow for maneuvering and freedom
+of movement when play begins.
 
-Learn more about AWS CodeBuild and how it builds and tests your application here:
-https://docs.aws.amazon.com/codebuild/latest/userguide/concepts.html
+![alt text](images/figure a.png "Figure A")
+ 
+## Movement
 
-Learn more about AWS Serverless Application Model (AWS SAM) and how it works here:
-https://github.com/awslabs/serverless-application-model/blob/master/HOWTO.md
+1. Any player makes the first move. Players move alternately. 
+2. A player can move only one piece at a time.
+3. A move consists of pushing a piece to an adjacent square, either forward, backward or sideward. A diagonal move or a
+move of more than one square is illegal. (See Figure B)
 
-AWS Lambda Developer Guide:
-http://docs.aws.amazon.com/lambda/latest/dg/deploying-lambda-apps.html
+![alt text](images/figure b.png "Figure B")
 
-Learn more about AWS CodeStar by reading the user guide, and post questions and
-comments about AWS CodeStar on our forum.
+## Challenging
 
-User Guide: http://docs.aws.amazon.com/codestar/latest/userguide/welcome.html
+1. As the game progresses, challenges are made resulting in the elimination of ships. A "challenge" is made when a ship
+moves into the same square occupied by an opposing ship. When a challenge is made the following rules of elimination
+apply:
 
-Forum: https://forums.aws.amazon.com/forum.jspa?forumID=248
+   a. A higher-class ship eliminates from the board a lower-class ship.
+   
+   b. If both ships are of equal class, both are eliminated.
+   
+   c. An Attack Submarine eliminates any ship starting with the Gerald Ford-class Aircraft Carrier down to the
+    Ticonderoga-class Guided Missile Cruiser.
+    
+   d. The Command Ship can be eliminated or captured by any piece including the opponent's Command Ship.
+   
+   e. Only a Littoral Combat Ship can eliminate the Attack Submarine.
+   
+   f. The Command Ship that moves into the same square occupied by the other Command Ship wins the game. 
 
-What Should I Do Before Running My Project in Production?
-------------------
+2. For maximum interest and suspense, a natural party (arbiter) is present to preside over a challenge for both players.
+As arbiter, he is not allowed to reveal to either player the ships whether engaged in challenges or not. In case of a
+challenge, the arbiter quietly removes the outclassed piece and gives it back to the player who has lost it. Care must
+be made that the eliminated piece is not shown to the opponent. (Note: Official tournament games are conducted with an
+arbiter.) 
 
-AWS recommends you review the security best practices recommended by the framework
-author of your selected sample application before running it in production. You
-should also regularly review and apply any available patches or associated security
-advisories for dependencies used within your application.
+3. When playing without an arbiter, every time there is a challenge both players must declare the classes of the two
+opposing pieces concerned, after which, the outclassed player removes his piece from the Board. 
 
-Best Practices: https://docs.aws.amazon.com/codestar/latest/userguide/best-practices.html?icmpid=docs_acs_rm_sec
+## Game Over
+
+1. The game ends:
+
+   a. When the Command Ship is eliminated or captured.
+   
+   b. When a Command Ship reaches the opposite end of the board.
+   
+   c. When a player resigns.
+   
+   d. When both players agree on a drawn position.
+
+2. A Command Ship reaching the opposite end of the board may still be eliminated by an opposing piece occupying a square
+adjacent to the one reached by the Command Ship. To win, the Command Ship should be at least two squares away or ahead
+of any opposing piece.
+
+## Features
+
+1. API's exposed via Amazon API Gateway
+2. API's integrated with AWS Lambda
+3. Players and matches stored in Amazon DynamoDB
+4. Passwords are hashed using scrypt
+5. React Web interface
+
+## Upcoming Features
+
+1. Email notifications via Amazon SES
+2. Chat with opponent
+3. Tournaments
+4. React Mobile interface
+5. Play against AI

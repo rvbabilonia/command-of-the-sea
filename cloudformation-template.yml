@@ -1,0 +1,717 @@
+AWSTemplateFormatVersion: 2010-09-09
+Resources:
+  CotsExecutionRole:
+    Description: Creating service role in IAM for AWS Lambda
+    Type: 'AWS::IAM::Role'
+    Properties:
+      RoleName: cots-execution-role
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - 'lambda.amazonaws.com'
+                - 'apigateway.amazonaws.com'
+            Action: 'sts:AssumeRole'
+      Path: /
+      ManagedPolicyArns:
+        - 'arn:aws:iam::aws:policy/AWSXrayWriteOnlyAccess'
+        - 'arn:aws:iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs'
+        - 'arn:aws:iam::aws:policy/service-role/AWSLambdaRole'
+      Policies:
+        - PolicyName: LambdaDynamoDBPolicy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'dynamodb:PutItem'
+                  - 'dynamodb:DeleteItem'
+                  - 'dynamodb:GetItem'
+                  - 'dynamodb:Scan'
+                  - 'dynamodb:Query'
+                  - 'dynamodb:UpdateItem'
+                Resource:
+                  - !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/*'
+
+  CotsApi:
+    Type: 'AWS::ApiGateway::RestApi'
+    Properties:
+      Name: 'cots-api'
+      Description: 'Command of the Sea Application Programming Interface Gateway'
+
+  RegistrationResource:
+    Type: 'AWS::ApiGateway::Resource'
+    Properties:
+      ParentId: !GetAtt CotsApi.RootResourceId
+      RestApiId: !Ref CotsApi
+      PathPart: 'registration'
+  AuthenticationResource:
+    Type: 'AWS::ApiGateway::Resource'
+    Properties:
+      ParentId: !GetAtt CotsApi.RootResourceId
+      RestApiId: !Ref CotsApi
+      PathPart: 'authentication'
+  PlayersResource:
+    Type: 'AWS::ApiGateway::Resource'
+    Properties:
+      ParentId: !GetAtt CotsApi.RootResourceId
+      RestApiId: !Ref CotsApi
+      PathPart: 'players'
+  PlayerResource:
+    Type: 'AWS::ApiGateway::Resource'
+    Properties:
+      ParentId: !Ref PlayersResource
+      RestApiId: !Ref CotsApi
+      PathPart: 'my'
+
+  RegistrationPostMethod:
+    Type: 'AWS::ApiGateway::Method'
+    Properties:
+      AuthorizationType: 'NONE'
+      HttpMethod: 'POST'
+      Integration:
+        IntegrationHttpMethod: 'POST'
+        Type: 'AWS_PROXY'
+        Uri: !Sub
+          - 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${lambdaArn}/invocations'
+          - lambdaArn: !GetAtt PlayerRegistrationFunction.Arn
+      ResourceId: !Ref RegistrationResource
+      RestApiId: !Ref CotsApi
+  AuthenticationPostMethod:
+    Type: 'AWS::ApiGateway::Method'
+    Properties:
+      AuthorizationType: 'NONE'
+      HttpMethod: 'POST'
+      Integration:
+        IntegrationHttpMethod: 'POST'
+        Type: 'AWS_PROXY'
+        Uri: !Sub
+          - 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${lambdaArn}/invocations'
+          - lambdaArn: !GetAtt PlayerLoginFunction.Arn
+      ResourceId: !Ref AuthenticationResource
+      RestApiId: !Ref CotsApi
+  AuthenticationDeleteMethod:
+    Type: 'AWS::ApiGateway::Method'
+    Properties:
+      AuthorizationType: 'NONE'
+      HttpMethod: 'DELETE'
+      Integration:
+        IntegrationHttpMethod: 'POST'
+        Type: 'AWS_PROXY'
+        Uri: !Sub
+          - 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${lambdaArn}/invocations'
+          - lambdaArn: !GetAtt PlayerLogoutFunction.Arn
+      ResourceId: !Ref AuthenticationResource
+      RestApiId: !Ref CotsApi
+  PlayerGetMethod:
+    Type: 'AWS::ApiGateway::Method'
+    Properties:
+      AuthorizationType: 'NONE'
+      HttpMethod: 'GET'
+      Integration:
+        IntegrationHttpMethod: 'POST'
+        Type: 'AWS_PROXY'
+        Uri: !Sub
+          - 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${lambdaArn}/invocations'
+          - lambdaArn: !GetAtt PlayerRetrievalFunction.Arn
+      ResourceId: !Ref PlayerResource
+      RestApiId: !Ref CotsApi
+
+  MatchesResource:
+    Type: 'AWS::ApiGateway::Resource'
+    Properties:
+      ParentId: !GetAtt CotsApi.RootResourceId
+      RestApiId: !Ref CotsApi
+      PathPart: 'matches'
+  MatchResource:
+    Type: 'AWS::ApiGateway::Resource'
+    Properties:
+      ParentId: !Ref MatchesResource
+      RestApiId: !Ref CotsApi
+      PathPart: '{matchUuid}'
+  ShipsResource:
+    Type: 'AWS::ApiGateway::Resource'
+    Properties:
+      ParentId: !Ref MatchResource
+      RestApiId: !Ref CotsApi
+      PathPart: 'ships'
+
+  MatchesPutMethod:
+    Type: 'AWS::ApiGateway::Method'
+    Properties:
+      AuthorizationType: 'NONE'
+      HttpMethod: 'PUT'
+      Integration:
+        IntegrationHttpMethod: 'POST'
+        Type: 'AWS_PROXY'
+        Uri: !Sub
+          - 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${lambdaArn}/invocations'
+          - lambdaArn: !GetAtt MatchHostingFunction.Arn
+      ResourceId: !Ref MatchesResource
+      RestApiId: !Ref CotsApi
+  MatchesGetMethod:
+    Type: 'AWS::ApiGateway::Method'
+    Properties:
+      AuthorizationType: 'NONE'
+      HttpMethod: 'GET'
+      Integration:
+        IntegrationHttpMethod: 'POST'
+        Type: 'AWS_PROXY'
+        Uri: !Sub
+          - 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${lambdaArn}/invocations'
+          - lambdaArn: !GetAtt MatchesRetrievalFunction.Arn
+      ResourceId: !Ref MatchesResource
+      RestApiId: !Ref CotsApi
+  MatchGetMethod:
+    Type: 'AWS::ApiGateway::Method'
+    Properties:
+      AuthorizationType: 'NONE'
+      HttpMethod: 'GET'
+      Integration:
+        IntegrationHttpMethod: 'POST'
+        Type: 'AWS_PROXY'
+        Uri: !Sub
+          - 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${lambdaArn}/invocations'
+          - lambdaArn: !GetAtt MatchRetrievalFunction.Arn
+      ResourceId: !Ref MatchResource
+      RestApiId: !Ref CotsApi
+  MatchPostMethod:
+    Type: 'AWS::ApiGateway::Method'
+    Properties:
+      AuthorizationType: 'NONE'
+      HttpMethod: 'POST'
+      Integration:
+        IntegrationHttpMethod: 'POST'
+        Type: 'AWS_PROXY'
+        Uri: !Sub
+          - 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${lambdaArn}/invocations'
+          - lambdaArn: !GetAtt MatchFunction.Arn
+      ResourceId: !Ref MatchResource
+      RestApiId: !Ref CotsApi
+  MatchDeleteMethod:
+    Type: 'AWS::ApiGateway::Method'
+    Properties:
+      AuthorizationType: 'NONE'
+      HttpMethod: 'DELETE'
+      Integration:
+        IntegrationHttpMethod: 'POST'
+        Type: 'AWS_PROXY'
+        Uri: !Sub
+          - 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${lambdaArn}/invocations'
+          - lambdaArn: !GetAtt MatchCancellationFunction.Arn
+      ResourceId: !Ref MatchResource
+      RestApiId: !Ref CotsApi
+  ShipsPostMethod:
+    Type: 'AWS::ApiGateway::Method'
+    Properties:
+      AuthorizationType: 'NONE'
+      HttpMethod: 'POST'
+      Integration:
+        IntegrationHttpMethod: 'POST'
+        Type: 'AWS_PROXY'
+        Uri: !Sub
+          - 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${lambdaArn}/invocations'
+          - lambdaArn: !GetAtt ShipMovementFunction.Arn
+      ResourceId: !Ref ShipsResource
+      RestApiId: !Ref CotsApi
+
+  RegistrationOptionsMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      AuthorizationType: NONE
+      RestApiId: !Ref CotsApi
+      ResourceId: !Ref RegistrationResource
+      HttpMethod: OPTIONS
+      Integration:
+        IntegrationResponses:
+          - StatusCode: 200
+            ResponseParameters:
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+              method.response.header.Access-Control-Allow-Methods: "'POST,OPTIONS'"
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+            ResponseTemplates:
+              application/json: ''
+        PassthroughBehavior: WHEN_NO_MATCH
+        RequestTemplates:
+          application/json: '{"statusCode": 200}'
+        Type: MOCK
+      MethodResponses:
+        - StatusCode: 200
+          ResponseModels:
+            application/json: 'Empty'
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Headers: false
+            method.response.header.Access-Control-Allow-Methods: false
+            method.response.header.Access-Control-Allow-Origin: false
+  AuthenticationOptionsMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      AuthorizationType: NONE
+      RestApiId: !Ref CotsApi
+      ResourceId: !Ref AuthenticationResource
+      HttpMethod: OPTIONS
+      Integration:
+        IntegrationResponses:
+          - StatusCode: 200
+            ResponseParameters:
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+              method.response.header.Access-Control-Allow-Methods: "'POST,DELETE,OPTIONS'"
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+            ResponseTemplates:
+              application/json: ''
+        PassthroughBehavior: WHEN_NO_MATCH
+        RequestTemplates:
+          application/json: '{"statusCode": 200}'
+        Type: MOCK
+      MethodResponses:
+        - StatusCode: 200
+          ResponseModels:
+            application/json: 'Empty'
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Headers: false
+            method.response.header.Access-Control-Allow-Methods: false
+            method.response.header.Access-Control-Allow-Origin: false
+  PlayersOptionsMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      AuthorizationType: NONE
+      RestApiId: !Ref CotsApi
+      ResourceId: !Ref PlayersResource
+      HttpMethod: OPTIONS
+      Integration:
+        IntegrationResponses:
+          - StatusCode: 200
+            ResponseParameters:
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+              method.response.header.Access-Control-Allow-Methods: "'GET,OPTIONS'"
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+            ResponseTemplates:
+              application/json: ''
+        PassthroughBehavior: WHEN_NO_MATCH
+        RequestTemplates:
+          application/json: '{"statusCode": 200}'
+        Type: MOCK
+      MethodResponses:
+        - StatusCode: 200
+          ResponseModels:
+            application/json: 'Empty'
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Headers: false
+            method.response.header.Access-Control-Allow-Methods: false
+            method.response.header.Access-Control-Allow-Origin: false
+  MatchesOptionsMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      AuthorizationType: NONE
+      RestApiId: !Ref CotsApi
+      ResourceId: !Ref MatchesResource
+      HttpMethod: OPTIONS
+      Integration:
+        IntegrationResponses:
+          - StatusCode: 200
+            ResponseParameters:
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+              method.response.header.Access-Control-Allow-Methods: "'PUT,GET,POST,DELETE,OPTIONS'"
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+            ResponseTemplates:
+              application/json: ''
+        PassthroughBehavior: WHEN_NO_MATCH
+        RequestTemplates:
+          application/json: '{"statusCode": 200}'
+        Type: MOCK
+      MethodResponses:
+        - StatusCode: 200
+          ResponseModels:
+            application/json: 'Empty'
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Headers: false
+            method.response.header.Access-Control-Allow-Methods: false
+            method.response.header.Access-Control-Allow-Origin: false
+
+  CotsApiGatewayDeployment:
+    Type: 'AWS::ApiGateway::Deployment'
+    DependsOn:
+      - 'RegistrationPostMethod'
+      - 'AuthenticationPostMethod'
+      - 'AuthenticationDeleteMethod'
+      - 'PlayerGetMethod'
+      - 'MatchesPutMethod'
+      - 'MatchesGetMethod'
+      - 'MatchGetMethod'
+      - 'MatchPostMethod'
+      - 'MatchDeleteMethod'
+      - 'ShipsPostMethod'
+    Properties:
+      RestApiId: !Ref CotsApi
+      StageName: 'v1'
+
+  PlayerRegistrationFunction:
+    Type: 'AWS::Lambda::Function'
+    Properties:
+      Code:
+        S3Bucket: cots-functions
+        S3Key: cots-player-1.0-SNAPSHOT.zip
+      FunctionName: registerPlayer
+      Handler: 'nz.org.vincenzo.cots.player.handler.RegistrationRequestHandler::handleRequest'
+      MemorySize: '512'
+      Timeout: '15'
+      TracingConfig:
+        Mode: Active
+      Runtime: java8
+      Role: !GetAtt
+        - CotsExecutionRole
+        - Arn
+  PlayerLoginFunction:
+    Type: 'AWS::Lambda::Function'
+    Properties:
+      Code:
+        S3Bucket: cots-functions
+        S3Key: cots-player-1.0-SNAPSHOT.zip
+      FunctionName: login
+      Handler: 'nz.org.vincenzo.cots.player.handler.LoginRequestHandler::handleRequest'
+      MemorySize: '512'
+      Timeout: '15'
+      TracingConfig:
+        Mode: Active
+      Runtime: java8
+      Role: !GetAtt
+        - CotsExecutionRole
+        - Arn
+  PlayerRetrievalFunction:
+    Type: 'AWS::Lambda::Function'
+    Properties:
+      Code:
+        S3Bucket: cots-functions
+        S3Key: cots-player-1.0-SNAPSHOT.zip
+      FunctionName: retrievePlayer
+      Handler: 'nz.org.vincenzo.cots.player.handler.PlayerRequestHandler::handleRequest'
+      MemorySize: '512'
+      Timeout: '15'
+      TracingConfig:
+        Mode: Active
+      Runtime: java8
+      Role: !GetAtt
+        - CotsExecutionRole
+        - Arn
+  PlayerRetrievalByUuidFunction:
+    Type: 'AWS::Lambda::Function'
+    Properties:
+      Code:
+        S3Bucket: cots-functions
+        S3Key: cots-player-1.0-SNAPSHOT.zip
+      FunctionName: retrievePlayerByUuid
+      Handler: 'nz.org.vincenzo.cots.player.handler.PlayerRetrievalRequestHandler::handleRequest'
+      MemorySize: '512'
+      Timeout: '15'
+      TracingConfig:
+        Mode: Active
+      Runtime: java8
+      Role: !GetAtt
+        - CotsExecutionRole
+        - Arn
+  PlayerModificationFunction:
+    Type: 'AWS::Lambda::Function'
+    Properties:
+      Code:
+        S3Bucket: cots-functions
+        S3Key: cots-player-1.0-SNAPSHOT.zip
+      FunctionName: updatePlayer
+      Handler: 'nz.org.vincenzo.cots.player.handler.ModificationRequestHandler::handleRequest'
+      MemorySize: '512'
+      Timeout: '15'
+      TracingConfig:
+        Mode: Active
+      Runtime: java8
+      Role: !GetAtt
+        - CotsExecutionRole
+        - Arn
+  PlayerStatisticsFunction:
+    Type: 'AWS::Lambda::Function'
+    Properties:
+      Code:
+        S3Bucket: cots-functions
+        S3Key: cots-player-1.0-SNAPSHOT.zip
+      FunctionName: updateStatistics
+      Handler: 'nz.org.vincenzo.cots.player.handler.StatisticsRequestHandler::handleRequest'
+      MemorySize: '512'
+      Timeout: '15'
+      TracingConfig:
+        Mode: Active
+      Runtime: java8
+      Role: !GetAtt
+        - CotsExecutionRole
+        - Arn
+  PlayerLogoutFunction:
+    Type: 'AWS::Lambda::Function'
+    Properties:
+      Code:
+        S3Bucket: cots-functions
+        S3Key: cots-player-1.0-SNAPSHOT.zip
+      FunctionName: logout
+      Handler: 'nz.org.vincenzo.cots.player.handler.LogoutRequestHandler::handleRequest'
+      MemorySize: '512'
+      Timeout: '15'
+      TracingConfig:
+        Mode: Active
+      Runtime: java8
+      Role: !GetAtt
+        - CotsExecutionRole
+        - Arn
+  MatchHostingFunction:
+    Type: 'AWS::Lambda::Function'
+    Properties:
+      Code:
+        S3Bucket: cots-functions
+        S3Key: cots-match-1.0-SNAPSHOT.zip
+      FunctionName: hostMatch
+      Handler: 'nz.org.vincenzo.cots.match.handler.MatchHostingRequestHandler::handleRequest'
+      MemorySize: '512'
+      Timeout: '15'
+      TracingConfig:
+        Mode: Active
+      Runtime: java8
+      Role: !GetAtt
+        - CotsExecutionRole
+        - Arn
+  MatchCancellationFunction:
+    Type: 'AWS::Lambda::Function'
+    Properties:
+      Code:
+        S3Bucket: cots-functions
+        S3Key: cots-match-1.0-SNAPSHOT.zip
+      FunctionName: cancelMatch
+      Handler: 'nz.org.vincenzo.cots.match.handler.MatchCancellationRequestHandler::handleRequest'
+      MemorySize: '512'
+      Timeout: '15'
+      TracingConfig:
+        Mode: Active
+      Runtime: java8
+      Role: !GetAtt
+        - CotsExecutionRole
+        - Arn
+  MatchesRetrievalFunction:
+    Type: 'AWS::Lambda::Function'
+    Properties:
+      Code:
+        S3Bucket: cots-functions
+        S3Key: cots-match-1.0-SNAPSHOT.zip
+      FunctionName: retrieveMatches
+      Handler: 'nz.org.vincenzo.cots.match.handler.MatchesRequestHandler::handleRequest'
+      MemorySize: '512'
+      Timeout: '15'
+      TracingConfig:
+        Mode: Active
+      Runtime: java8
+      Role: !GetAtt
+        - CotsExecutionRole
+        - Arn
+  MatchRetrievalFunction:
+    Type: 'AWS::Lambda::Function'
+    Properties:
+      Code:
+        S3Bucket: cots-functions
+        S3Key: cots-match-1.0-SNAPSHOT.zip
+      FunctionName: retrieveMatch
+      Handler: 'nz.org.vincenzo.cots.match.handler.MatchRetrievalRequestHandler::handleRequest'
+      MemorySize: '512'
+      Timeout: '15'
+      TracingConfig:
+        Mode: Active
+      Runtime: java8
+      Role: !GetAtt
+        - CotsExecutionRole
+        - Arn
+  MatchFunction:
+    Type: 'AWS::Lambda::Function'
+    Properties:
+      Code:
+        S3Bucket: cots-functions
+        S3Key: cots-match-1.0-SNAPSHOT.zip
+      FunctionName: handleMatch
+      Handler: 'nz.org.vincenzo.cots.match.handler.MatchRequestHandler::handleRequest'
+      MemorySize: '512'
+      Timeout: '15'
+      TracingConfig:
+        Mode: Active
+      Runtime: java8
+      Role: !GetAtt
+        - CotsExecutionRole
+        - Arn
+  ShipMovementFunction:
+    Type: 'AWS::Lambda::Function'
+    Properties:
+      Code:
+        S3Bucket: cots-functions
+        S3Key: cots-match-1.0-SNAPSHOT.zip
+      FunctionName: moveShip
+      Handler: 'nz.org.vincenzo.cots.match.handler.ShipMovementRequestHandler::handleRequest'
+      MemorySize: '512'
+      Timeout: '15'
+      TracingConfig:
+        Mode: Active
+      Runtime: java8
+      Role: !GetAtt
+        - CotsExecutionRole
+        - Arn
+
+  PlayerRegistrationPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: 'lambda:invokeFunction'
+      FunctionName: !GetAtt PlayerRegistrationFunction.Arn
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub
+        - 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${apiGateway}/*/*'
+        - apiGateway: !Ref CotsApi
+  PlayerRetrievalPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: 'lambda:invokeFunction'
+      FunctionName: !GetAtt PlayerRetrievalFunction.Arn
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub
+        - 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${apiGateway}/*/*'
+        - apiGateway: !Ref CotsApi
+  PlayerModificationPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: 'lambda:invokeFunction'
+      FunctionName: !GetAtt PlayerModificationFunction.Arn
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub
+        - 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${apiGateway}/*/*'
+        - apiGateway: !Ref CotsApi
+  PlayerStatisticsPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: 'lambda:invokeFunction'
+      FunctionName: !GetAtt PlayerStatisticsFunction.Arn
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub
+        - 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${apiGateway}/*/*'
+        - apiGateway: !Ref CotsApi
+  PlayerLoginPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: 'lambda:invokeFunction'
+      FunctionName: !GetAtt PlayerLoginFunction.Arn
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub
+        - 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${apiGateway}/*/*'
+        - apiGateway: !Ref CotsApi
+  PlayerLogoutPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: 'lambda:invokeFunction'
+      FunctionName: !GetAtt PlayerLogoutFunction.Arn
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub
+        - 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${apiGateway}/*/*'
+        - apiGateway: !Ref CotsApi
+  MatchHostingPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: 'lambda:invokeFunction'
+      FunctionName: !GetAtt MatchHostingFunction.Arn
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub
+        - 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${apiGateway}/*/*'
+        - apiGateway: !Ref CotsApi
+  MatchesRetrievalPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: 'lambda:invokeFunction'
+      FunctionName: !GetAtt MatchesRetrievalFunction.Arn
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub
+        - 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${apiGateway}/*/*'
+        - apiGateway: !Ref CotsApi
+  MatchRetrievalPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: 'lambda:invokeFunction'
+      FunctionName: !GetAtt MatchRetrievalFunction.Arn
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub
+        - 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${apiGateway}/*/*'
+        - apiGateway: !Ref CotsApi
+  MatchPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: 'lambda:invokeFunction'
+      FunctionName: !GetAtt MatchFunction.Arn
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub
+        - 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${apiGateway}/*/*'
+        - apiGateway: !Ref CotsApi
+  ShipMovementPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: 'lambda:invokeFunction'
+      FunctionName: !GetAtt ShipMovementFunction.Arn
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub
+        - 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${apiGateway}/*/*'
+        - apiGateway: !Ref CotsApi
+
+  PlayerTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: 'uuid'
+          AttributeType: 'S'
+        - AttributeName: 'emailAddress'
+          AttributeType: 'S'
+        - AttributeName: 'nickname'
+          AttributeType: 'S'
+        - AttributeName: 'accessToken'
+          AttributeType: 'S'
+      KeySchema:
+        - AttributeName: 'uuid'
+          KeyType: 'HASH'
+      ProvisionedThroughput:
+        ReadCapacityUnits: '5'
+        WriteCapacityUnits: '5'
+      TableName: 'player'
+      GlobalSecondaryIndexes:
+        - IndexName: 'emailAddresses'
+          KeySchema:
+            - AttributeName: 'emailAddress'
+              KeyType: 'HASH'
+          Projection:
+            ProjectionType: 'KEYS_ONLY'
+          ProvisionedThroughput:
+            ReadCapacityUnits: '5'
+            WriteCapacityUnits: '5'
+        - IndexName: 'nicknames'
+          KeySchema:
+            - AttributeName: 'nickname'
+              KeyType: 'HASH'
+          Projection:
+            ProjectionType: 'KEYS_ONLY'
+          ProvisionedThroughput:
+            ReadCapacityUnits: '5'
+            WriteCapacityUnits: '5'
+        - IndexName: 'accessTokens'
+          KeySchema:
+            - AttributeName: 'accessToken'
+              KeyType: 'HASH'
+          Projection:
+            ProjectionType: 'KEYS_ONLY'
+          ProvisionedThroughput:
+            ReadCapacityUnits: '5'
+            WriteCapacityUnits: '5'
+  MatchTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: 'uuid'
+          AttributeType: 'S'
+      KeySchema:
+        - AttributeName: 'uuid'
+          KeyType: 'HASH'
+      ProvisionedThroughput:
+        ReadCapacityUnits: '5'
+        WriteCapacityUnits: '5'
+      TableName: 'match'
