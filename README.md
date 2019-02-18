@@ -1,4 +1,7 @@
 # Command of the Sea
+====
+[![Build Status](https://travis-ci.org/rvbabilonia/command-of-the-sea.svg?branch=master)](https://travis-ci.org/rvbabilonia/command-of-the-sea)
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/d1cef17b5b394c4583c1c7da6eea4be2)](https://www.codacy.com/app/rvbabilonia/command-of-the-sea?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=rvbabilonia/command-of-the-sea&amp;utm_campaign=Badge_Grade)
 
 Command of the Sea is a turn-based strategy game based on Dover Patrol (Gibson, 1911) and Game of the Generals (Pasola, 
 1970).
