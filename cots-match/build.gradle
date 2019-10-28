@@ -36,7 +36,7 @@ ext {
 
     mockitoVersion = "2.24.0"
 
-    assertjVersion = "3.11.1"
+    assertjVersion = "3.14.0"
 
     dynamodbV1Version = "1.0.0"
 }
