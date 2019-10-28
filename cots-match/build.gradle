@@ -25,7 +25,7 @@ ext {
     awsLambdaJavaCoreVersion = "1.2.0"
     awsLambdaJavaLog4JVersion = "1.0.0"
 
-    gsonVersion = "2.8.5"
+    gsonVersion = "2.8.6"
 
     slf4jVersion = "1.7.25"
 
