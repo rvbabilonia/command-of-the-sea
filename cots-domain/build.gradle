@@ -12,7 +12,7 @@ repositories {
 ext {
     awsJavaSdkVersion = "1.11.660"
 
-    gsonVersion = "2.8.5"
+    gsonVersion = "2.8.6"
 }
 
 dependencies {
