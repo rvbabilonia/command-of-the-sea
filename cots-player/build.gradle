@@ -33,7 +33,7 @@ ext {
 
     commonsValidatorVersion = "1.6"
 
-    slf4jVersion = "1.7.28"
+    slf4jVersion = "1.7.29"
 
     springVersion = "5.2.0.RELEASE"
     springBootVersion = "2.2.0.RELEASE"
