@@ -21,7 +21,7 @@ repositories {
 }
 
 ext {
-    awsJavaSdkVersion = "1.11.660"
+    awsJavaSdkVersion = "1.11.673"
     awsLambdaJavaCoreVersion = "1.2.0"
     awsLambdaJavaLog4JVersion = "1.0.0"
 
