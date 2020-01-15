@@ -29,7 +29,7 @@ ext {
 
     slf4jVersion = "1.7.28"
 
-    springVersion = "5.2.0.RELEASE"
+    springVersion = "5.2.3.RELEASE"
     springBootVersion = "2.2.0.RELEASE"
 
     junitVersion = "5.5.2"
