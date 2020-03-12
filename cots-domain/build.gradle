@@ -1,24 +1,17 @@
-apply plugin: "java"
-
-group "nz.org.vincenzo"
-version "1.0-SNAPSHOT"
-description "The domain model objects"
-sourceCompatibility = "1.8"
-
-repositories {
-    mavenCentral()
+plugins {
+    id 'java-library'
+    id 'idea'
+    id 'com.github.ben-manes.versions'
 }
 
 ext {
-    awsJavaSdkVersion = "1.11.660"
+    awsJavaSdkVersion = "1.11.742"
 
     gsonVersion = "2.8.6"
 }
 
 dependencies {
-    // AWS
     implementation "com.amazonaws:aws-java-sdk-dynamodb:$awsJavaSdkVersion"
 
-    // GSON
     implementation "com.google.code.gson:gson:$gsonVersion"
 }

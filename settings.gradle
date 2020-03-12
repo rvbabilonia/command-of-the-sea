@@ -1,3 +1,7 @@
+pluginManagement.repositories {
+    gradlePluginPortal()
+}
+
 rootProject.name = 'command-of-the-sea'
 include 'cots-match'
 include 'cots-player'
