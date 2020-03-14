@@ -44,7 +44,7 @@ ext {
 
     assertjVersion = "3.11.1"
 
-    dynamodbV1Version = "1.0.0"
+    dynamodbV1Version = "3.3.2"
 }
 
 dependencies {
