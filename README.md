@@ -117,6 +117,13 @@ of any opposing piece.
 4. React Mobile interface
 5. Play against AI
 
+## Development
+
+1. Download DynamoDB Local: `docker pull amazon/dynamodb-local`
+
+2. Start DynamoDB Local: `docker run -p 8000:8000 amazon/dynamodb-local`
+
+3. Set environment variables: `DYNAMODB_URL=http://localhost:8000;DYNAMODB_REGION=ap-southeast-2;DYNAMODB_ACCESS_KEY=accessKey;DYNAMODB_SECRET_KEY=secretKey`
 
 ## License
 [![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Frvbabilonia%2Fcommand-of-the-sea.svg?type=large)](https://app.fossa.io/projects/git%2Bgithub.com%2Frvbabilonia%2Fcommand-of-the-sea?ref=badge_large)
