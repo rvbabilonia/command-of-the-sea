@@ -21,7 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package nz.org.vincenzo.cots.match.application;
+package nz.org.vincenzo.cots.match;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -34,6 +34,11 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 @SpringBootApplication
 public class MatchApplication {
 
+    /**
+     * Main application.
+     *
+     * @param args the arguments
+     */
     public static void main(String[] args) {
         SpringApplication.run(MatchApplication.class, args);
     }

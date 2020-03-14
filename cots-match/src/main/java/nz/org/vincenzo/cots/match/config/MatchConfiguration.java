@@ -23,13 +23,6 @@
  */
 package nz.org.vincenzo.cots.match.config;
 
-import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
-import com.amazonaws.regions.Regions;
-import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
-import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClientBuilder;
-import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBMapper;
-import com.amazonaws.services.lambda.AWSLambda;
-import com.amazonaws.services.lambda.AWSLambdaClientBuilder;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import nz.org.vincenzo.cots.match.dao.MatchDAO;
@@ -42,6 +35,10 @@ import nz.org.vincenzo.cots.match.service.impl.MatchServiceImpl;
 import nz.org.vincenzo.cots.match.service.impl.PlayerServiceImpl;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
+import software.amazon.awssdk.services.lambda.LambdaClient;
 
 /**
  * The match configuration.
@@ -52,38 +49,28 @@ import org.springframework.context.annotation.Configuration;
 public class MatchConfiguration {
 
     /**
-     * Returns the {@link AmazonDynamoDB} client.
+     * Returns the {@link DynamoDbClient}.
      *
-     * @return the {@link AmazonDynamoDB} client
+     * @return the {@link DynamoDbClient}
      */
     @Bean
-    public AmazonDynamoDB amazonDynamoDB() {
-        return AmazonDynamoDBClientBuilder.standard()
-                .withRegion(Regions.AP_SOUTHEAST_2)
-                .withCredentials(new DefaultAWSCredentialsProviderChain())
+    public DynamoDbClient dynamoDbClient() {
+        return DynamoDbClient.builder()
+                .region(Region.AP_SOUTHEAST_2)
+                .credentialsProvider(DefaultCredentialsProvider.builder().build())
                 .build();
     }
 
     /**
-     * Returns the {@link DynamoDBMapper}.
+     * Returns the {@link LambdaClient}.
      *
-     * @return the {@link DynamoDBMapper}
+     * @return the {@link LambdaClient}
      */
     @Bean
-    public DynamoDBMapper dynamoDBMapper() {
-        return new DynamoDBMapper(amazonDynamoDB());
-    }
-
-    /**
-     * Returns the {@link AWSLambda} client.
-     *
-     * @return the {@link AWSLambda} client
-     */
-    @Bean
-    public AWSLambda awsLambda() {
-        return AWSLambdaClientBuilder.standard()
-                .withRegion(Regions.AP_SOUTHEAST_2)
-                .withCredentials(new DefaultAWSCredentialsProviderChain())
+    public LambdaClient lambdaClient() {
+        return LambdaClient.builder()
+                .region(Region.AP_SOUTHEAST_2)
+                .credentialsProvider(DefaultCredentialsProvider.builder().build())
                 .build();
     }
 
@@ -94,7 +81,7 @@ public class MatchConfiguration {
      */
     @Bean
     public MatchDAO matchDAO() {
-        return new MatchDAODynamoDBImpl(dynamoDBMapper());
+        return new MatchDAODynamoDBImpl(dynamoDbClient(), gson());
     }
 
     /**
@@ -124,7 +111,7 @@ public class MatchConfiguration {
      */
     @Bean
     public PlayerService playerService() {
-        return new PlayerServiceImpl(awsLambda(), gson());
+        return new PlayerServiceImpl(lambdaClient(), gson());
     }
 
     /**

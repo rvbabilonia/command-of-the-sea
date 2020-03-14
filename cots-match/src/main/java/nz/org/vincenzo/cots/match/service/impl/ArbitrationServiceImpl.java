@@ -27,6 +27,8 @@ import nz.org.vincenzo.cots.domain.Ship;
 import nz.org.vincenzo.cots.match.service.ArbitrationService;
 import org.springframework.stereotype.Service;
 
+import java.util.Set;
+
 /**
  * The implementation of {@link ArbitrationService}.
  *
@@ -91,5 +93,16 @@ public class ArbitrationServiceImpl implements ArbitrationService {
         }
 
         return attackingShipClass.getRank() > defendingShipClass.getRank() ? attackingShip : defendingShip;
+    }
+
+    @Override
+    public boolean validateShips(Set<Ship> ships) {
+        for (Ship ship : ships) {
+            if (ship.getCoordinates().equals(new Ship.Coordinates(-1, -1))) {
+                throw new IllegalArgumentException(String.format("%s must be positioned", ship.getShipClass()));
+            }
+        }
+
+        return true;
     }
 }

@@ -23,21 +23,19 @@
  */
 package nz.org.vincenzo.cots.match.service.impl;
 
-import com.amazonaws.services.lambda.AWSLambda;
-import com.amazonaws.services.lambda.model.InvokeRequest;
-import com.amazonaws.services.lambda.model.InvokeResult;
-import com.amazonaws.util.StringUtils;
 import com.google.gson.Gson;
 import nz.org.vincenzo.cots.domain.Player;
-import nz.org.vincenzo.cots.match.handler.Response;
 import nz.org.vincenzo.cots.match.service.PlayerService;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-
-import java.nio.ByteBuffer;
-import java.nio.charset.Charset;
+import software.amazon.awssdk.core.SdkBytes;
+import software.amazon.awssdk.services.lambda.LambdaClient;
+import software.amazon.awssdk.services.lambda.model.InvokeRequest;
+import software.amazon.awssdk.services.lambda.model.InvokeResponse;
+import software.amazon.awssdk.services.lambda.model.ServiceException;
 
 /**
  * The implementation of {@link PlayerService}.
@@ -49,42 +47,40 @@ public class PlayerServiceImpl implements PlayerService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(PlayerServiceImpl.class);
 
-    private final AWSLambda awsLambda;
+    private final LambdaClient lambdaClient;
 
     private final Gson gson;
 
     /**
      * Default constructor.
      *
-     * @param awsLambda the {@link AWSLambda}
+     * @param lambdaClient the {@link LambdaClient}
      */
     @Autowired
-    public PlayerServiceImpl(AWSLambda awsLambda, Gson gson) {
-        this.awsLambda = awsLambda;
+    public PlayerServiceImpl(LambdaClient lambdaClient, Gson gson) {
+        this.lambdaClient = lambdaClient;
         this.gson = gson;
     }
 
     @Override
     public Player retrievePlayer(final String accessToken) {
-        if (StringUtils.isNullOrEmpty(accessToken)) {
+        if (StringUtils.isBlank(accessToken)) {
             throw new IllegalArgumentException("Access token cannot be null or empty");
         }
 
         try {
-            InvokeRequest invokeRequest = new InvokeRequest();
-            invokeRequest.setFunctionName("retrievePlayer");
-            invokeRequest.setPayload(String.format("{\"headers\":{\"Authorization\":\"Bearer %s\"}}",
-                    accessToken));
+            InvokeRequest invokeRequest = InvokeRequest.builder()
+                    .functionName("retrievePlayer")
+                    .payload(SdkBytes.fromUtf8String(String.format("{\"headers\":{\"Authorization\":\"Bearer %s\"}}",
+                            accessToken)))
+                    .build();
 
-            InvokeResult invokeResult = awsLambda.invoke(invokeRequest);
-            ByteBuffer payload = invokeResult.getPayload();
-            String json = new String(payload.array(), Charset.forName("UTF-8"));
+            InvokeResponse invokeResponse = lambdaClient.invoke(invokeRequest);
+            String json = invokeResponse.payload().asUtf8String();
 
-            Response response = gson.fromJson(json, Response.class);
-
-            return gson.fromJson(response.getBody(), Player.class);
-        } catch (Exception e) {
-            LOGGER.error(e.getMessage(), e);
+            return gson.fromJson(json, Player.class);
+        } catch (ServiceException e) {
+            LOGGER.error("Failed to retrieve player: [{}]", e.getMessage(), e);
 
             return null;
         }
@@ -92,24 +88,22 @@ public class PlayerServiceImpl implements PlayerService {
 
     @Override
     public Player retrievePlayerByUuid(final String playerUuid) {
-        if (StringUtils.isNullOrEmpty(playerUuid)) {
+        if (StringUtils.isBlank(playerUuid)) {
             throw new IllegalArgumentException("Player UUID cannot be null or empty");
         }
 
         try {
-            InvokeRequest invokeRequest = new InvokeRequest();
-            invokeRequest.setFunctionName("retrievePlayerByUuid");
-            invokeRequest.setPayload(String.format("{\"body\":\"{\"playerUuid\":\"%s\"}\"}", playerUuid));
+            InvokeRequest invokeRequest = InvokeRequest.builder()
+                    .functionName("retrievePlayerByUuid")
+                    .payload(SdkBytes.fromUtf8String(String.format("{\"body\":\"{\"playerUuid\":\"%s\"}\"}", playerUuid)))
+                    .build();
 
-            InvokeResult invokeResult = awsLambda.invoke(invokeRequest);
-            ByteBuffer payload = invokeResult.getPayload();
-            String json = payload.toString();
+            InvokeResponse invokeResponse = lambdaClient.invoke(invokeRequest);
+            String json = invokeResponse.payload().asUtf8String();
 
-            Response response = gson.fromJson(json, Response.class);
-
-            return gson.fromJson(response.getBody(), Player.class);
-        } catch (Exception e) {
-            LOGGER.error(e.getMessage(), e);
+            return gson.fromJson(json, Player.class);
+        } catch (ServiceException e) {
+            LOGGER.error("Failed to retrieve player with UUID [{}]: [{}]", playerUuid, e.getMessage(), e);
 
             return null;
         }
@@ -117,24 +111,23 @@ public class PlayerServiceImpl implements PlayerService {
 
     @Override
     public Player updateStatistics(final String playerUuid, final Result result) {
-        if (StringUtils.isNullOrEmpty(playerUuid)) {
+        if (StringUtils.isBlank(playerUuid)) {
             throw new IllegalArgumentException("Player UUID cannot be null or empty");
         }
 
         try {
-            InvokeRequest invokeRequest = new InvokeRequest();
-            invokeRequest.setFunctionName("updateStatistics");
-            invokeRequest.setPayload(String.format("{\"playerUuid\":\"%s\",\"result\":\"%s\"}", playerUuid, result));
+            InvokeRequest invokeRequest = InvokeRequest.builder()
+                    .functionName("updateStatistics")
+                    .payload(SdkBytes.fromUtf8String(String.format("{\"playerUuid\":\"%s\",\"result\":\"%s\"}",
+                            playerUuid, result)))
+                    .build();
 
-            InvokeResult invokeResult = awsLambda.invoke(invokeRequest);
-            ByteBuffer payload = invokeResult.getPayload();
-            String json = payload.toString();
+            InvokeResponse invokeResponse = lambdaClient.invoke(invokeRequest);
+            String json = invokeResponse.payload().asUtf8String();
 
-            Response response = gson.fromJson(json, Response.class);
-
-            return gson.fromJson(response.getBody(), Player.class);
-        } catch (Exception e) {
-            LOGGER.error(e.getMessage(), e);
+            return gson.fromJson(json, Player.class);
+        } catch (ServiceException e) {
+            LOGGER.error("Failed to update statistics of player with UUID [{}]: [{}]", playerUuid, e.getMessage(), e);
 
             return null;
         }

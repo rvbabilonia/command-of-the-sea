@@ -23,25 +23,31 @@
  */
 package nz.org.vincenzo.cots.match.dao;
 
-import by.dev.madhead.aws_junit5.dynamodb.v1.DynamoDBLocal;
-import by.dev.madhead.aws_junit5.dynamodb.v1.DynamoDBLocalExtension;
-import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
-import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBMapper;
-import com.amazonaws.services.dynamodbv2.model.AttributeDefinition;
-import com.amazonaws.services.dynamodbv2.model.CreateTableRequest;
-import com.amazonaws.services.dynamodbv2.model.KeySchemaElement;
-import com.amazonaws.services.dynamodbv2.model.KeyType;
-import com.amazonaws.services.dynamodbv2.model.ProvisionedThroughput;
-import com.amazonaws.services.dynamodbv2.model.ScalarAttributeType;
+import by.dev.madhead.aws_junit5.common.AWSClient;
+import by.dev.madhead.aws_junit5.common.AWSEndpoint;
+import by.dev.madhead.aws_junit5.dynamo.v2.DynamoDB;
+import com.google.gson.GsonBuilder;
 import nz.org.vincenzo.cots.domain.Match;
+import nz.org.vincenzo.cots.domain.Ship;
 import nz.org.vincenzo.cots.match.dao.impl.MatchDAODynamoDBImpl;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.platform.commons.util.StringUtils;
+import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
+import software.amazon.awssdk.services.dynamodb.model.AttributeDefinition;
+import software.amazon.awssdk.services.dynamodb.model.CreateTableRequest;
+import software.amazon.awssdk.services.dynamodb.model.DeleteTableRequest;
+import software.amazon.awssdk.services.dynamodb.model.KeySchemaElement;
+import software.amazon.awssdk.services.dynamodb.model.KeyType;
+import software.amazon.awssdk.services.dynamodb.model.ProvisionedThroughput;
+import software.amazon.awssdk.services.dynamodb.model.ScalarAttributeType;
 
-import java.time.OffsetDateTime;
-import java.util.Date;
-import java.util.List;
+import java.time.LocalDateTime;
+import java.util.Collections;
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -51,28 +57,46 @@ import static org.assertj.core.api.Assertions.assertThat;
  *
  * @author Rey Vincent Babilonia
  */
-@ExtendWith(DynamoDBLocalExtension.class)
+@ExtendWith(DynamoDB.class)
 class MatchDAOTest {
 
-    @DynamoDBLocal(url = "http://localhost:8000")
-    private AmazonDynamoDB amazonDynamoDB;
+    private static final String MATCH_TABLE_NAME = "match";
+
+    @AWSClient(endpoint = Endpoint.class)
+    private DynamoDbClient dynamoDbClient;
 
     private MatchDAO matchDAO;
 
     @BeforeEach
     void setUp() {
-        amazonDynamoDB.deleteTable("match");
+        CreateTableRequest createTableRequest = CreateTableRequest.builder()
+                .tableName(MATCH_TABLE_NAME)
+                .keySchema(KeySchemaElement.builder()
+                        .attributeName("uuid")
+                        .keyType(KeyType.HASH)
+                        .build())
+                .attributeDefinitions(AttributeDefinition.builder()
+                        .attributeName("uuid")
+                        .attributeType(ScalarAttributeType.S)
+                        .build())
+                .provisionedThroughput(ProvisionedThroughput.builder()
+                        .readCapacityUnits(5L)
+                        .writeCapacityUnits(5L)
+                        .build())
+                .build();
 
-        CreateTableRequest request = new CreateTableRequest()
-                .withTableName("match")
-                .withKeySchema(new KeySchemaElement("uuid", KeyType.HASH))
-                .withAttributeDefinitions(new AttributeDefinition("uuid", ScalarAttributeType.S))
-                .withProvisionedThroughput(new ProvisionedThroughput(5L, 5L));
-        amazonDynamoDB.createTable(request);
+        dynamoDbClient.createTable(createTableRequest);
 
-        DynamoDBMapper mapper = new DynamoDBMapper(amazonDynamoDB);
+        matchDAO = new MatchDAODynamoDBImpl(dynamoDbClient, new GsonBuilder().create());
+    }
 
-        matchDAO = new MatchDAODynamoDBImpl(mapper);
+    @AfterEach
+    void tearDown() {
+        DeleteTableRequest deleteTableRequest = DeleteTableRequest.builder()
+                .tableName(MATCH_TABLE_NAME)
+                .build();
+
+        dynamoDbClient.deleteTable(deleteTableRequest);
     }
 
     @Test
@@ -90,14 +114,14 @@ class MatchDAOTest {
         assertThat(actual.getWinner()).isNull();
         assertThat(actual.getLoser()).isNull();
         assertThat(actual.getHost()).isEqualTo(playerUuid);
-        assertThat(actual.getCreationDate()).isBeforeOrEqualsTo(Date.from(OffsetDateTime.now().toInstant()));
+        assertThat(actual.getCreationDate()).isBeforeOrEqualTo(LocalDateTime.now());
         assertThat(actual.getTurn()).isNull();
         assertThat(actual.hasStarted()).isFalse();
         assertThat(actual.getStartDate()).isNull();
         assertThat(actual.getEndDate()).isNull();
         assertThat(actual.isWhitePlayerReady()).isFalse();
         assertThat(actual.isBlackPlayerReady()).isFalse();
-        assertThat(actual.getTurns()).isEmpty();
+        assertThat(actual.getMoves()).isEmpty();
     }
 
     @Test
@@ -118,10 +142,14 @@ class MatchDAOTest {
         Match expected = matchDAO.createMatch(playerUuid);
         expected.setStarted(true);
         expected.setWinner(playerUuid);
+        expected.setEndDate(LocalDateTime.now().minusHours(1));
         matchDAO.updateMatch(expected);
 
-        List<Match> matches = matchDAO.retrieveFinishedMatches();
-        assertThat(matches.size()).isEqualTo(1);
+        Set<Match> matches = matchDAO.retrieveFinishedMatches();
+        assertThat(matches).hasSize(1)
+                .first()
+                .extracting("winner", "draw")
+                .containsExactly(playerUuid, false);
     }
 
     @Test
@@ -131,10 +159,14 @@ class MatchDAOTest {
         Match expected = matchDAO.createMatch(playerUuid);
         expected.setStarted(true);
         expected.setDraw(true);
+        expected.setEndDate(LocalDateTime.now().minusHours(1));
         matchDAO.updateMatch(expected);
 
-        List<Match> matches = matchDAO.retrieveFinishedMatches();
-        assertThat(matches.size()).isEqualTo(1);
+        Set<Match> matches = matchDAO.retrieveFinishedMatches();
+        assertThat(matches).hasSize(1)
+                .first()
+                .extracting("winner", "draw")
+                .containsExactly(null, true);
     }
 
     @Test
@@ -143,10 +175,14 @@ class MatchDAOTest {
 
         Match expected = matchDAO.createMatch(playerUuid);
         expected.setStarted(true);
+        expected.setStartDate(LocalDateTime.now());
         matchDAO.updateMatch(expected);
 
-        List<Match> matches = matchDAO.retrieveActiveMatches();
-        assertThat(matches.size()).isEqualTo(1);
+        Set<Match> matches = matchDAO.retrieveActiveMatches();
+        assertThat(matches).hasSize(1)
+                .first()
+                .extracting("winner", "draw", "started")
+                .containsExactly(null, false, true);
     }
 
     @Test
@@ -155,8 +191,11 @@ class MatchDAOTest {
 
         matchDAO.createMatch(playerUuid);
 
-        List<Match> matches = matchDAO.retrieveUnstartedMatches();
-        assertThat(matches.size()).isEqualTo(1);
+        Set<Match> matches = matchDAO.retrieveUnstartedMatches();
+        assertThat(matches).hasSize(1)
+                .first()
+                .extracting("host", "started")
+                .containsExactly(playerUuid, false);
     }
 
     @Test
@@ -164,16 +203,87 @@ class MatchDAOTest {
         String playerUuid = UUID.randomUUID().toString();
 
         Match expected = matchDAO.createMatch(playerUuid);
+        assertThat(expected.getCreationDate()).isBeforeOrEqualTo(LocalDateTime.now());
+
         expected.setStarted(true);
-        expected.setStartDate(Date.from(OffsetDateTime.now().toInstant()));
-        expected.setWhitePlayer(UUID.randomUUID().toString());
+        expected.setStartDate(LocalDateTime.now());
+
+        String whitePlayer = expected.getWhitePlayer();
+        if (StringUtils.isBlank(whitePlayer)) {
+            whitePlayer = UUID.randomUUID().toString();
+            expected.setWhitePlayer(whitePlayer);
+        }
+
+        String blackPlayer = expected.getBlackPlayer();
+        if (StringUtils.isBlank(blackPlayer)) {
+            blackPlayer = UUID.randomUUID().toString();
+            expected.setBlackPlayer(blackPlayer);
+        }
         expected.setWhitePlayerReady(true);
         expected.setBlackPlayerReady(true);
 
-        matchDAO.updateMatch(expected);
+        Ship whiteShip = new Ship();
+        whiteShip.setColor(Ship.Color.WHITE);
+        whiteShip.setShipClass(Ship.ShipClass.AMERICA_CLASS_AMPHIBIOUS_ASSAULT_SHIP);
+        whiteShip.setCoordinates(new Ship.Coordinates(3, 3));
+        expected.setFleets(Map.of(whitePlayer, Collections.singleton(whiteShip)));
+
+        assertThat(matchDAO.updateMatch(expected)).isTrue();
+
+        Ship blackShip = new Ship();
+        blackShip.setColor(Ship.Color.BLACK);
+        blackShip.setShipClass(Ship.ShipClass.GERALD_FORD_CLASS_AIRCRAFT_CARRIER);
+        blackShip.setCoordinates(new Ship.Coordinates(6, 6));
+        expected.setFleets(Map.of(blackPlayer, Set.of(blackShip)));
+
+        assertThat(matchDAO.updateMatch(expected)).isTrue();
 
         Match actual = matchDAO.retrieveMatch(expected.getUuid());
 
-        assertThat(actual).isEqualTo(expected);
+        assertThat(actual)
+                .extracting("uuid", "whitePlayer", "blackPlayer", "draw",
+                        "whitePlayerAgreedToDraw", "blackPlayerAgreedToDraw", "host", "started",
+                        "whitePlayerReady", "blackPlayerReady", "fleets")
+                .containsExactly(expected.getUuid(), whitePlayer, blackPlayer, false,
+                        false, false, playerUuid, true,
+                        true, true, Collections.emptyMap());
+        assertThat(actual.getMoves()).hasSize(2);
+
+        assertThat(actual.getMoves().get(0)).isEqualTo(Map.of(whitePlayer, Set.of(whiteShip)));
+        assertThat(actual.getMoves().get(1)).isEqualTo(Map.of(blackPlayer, Set.of(blackShip)));
+    }
+
+    @Test
+    void deleteMatch() {
+        String playerUuid = UUID.randomUUID().toString();
+
+        Match expected = matchDAO.createMatch(playerUuid);
+
+        assertThat(matchDAO.deleteMatch(expected)).isTrue();
+    }
+
+    /**
+     * The implementation of {@link AWSEndpoint}.
+     */
+    public static class Endpoint implements AWSEndpoint {
+        @Override
+        public String url() {
+            return System.getenv("DYNAMODB_URL");
+        }
+
+        @Override
+        public String region() {
+            return System.getenv("DYNAMODB_REGION");
+        }
+
+        @Override
+        public String accessKey() {
+            return System.getenv("DYNAMODB_ACCESS_KEY");
+        }
+
+        @Override
+        public String secretKey() {
+            return System.getenv("DYNAMODB_SECRET_KEY");
+        }
     }
 }

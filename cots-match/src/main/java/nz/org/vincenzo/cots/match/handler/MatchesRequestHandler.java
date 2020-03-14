@@ -25,21 +25,21 @@ package nz.org.vincenzo.cots.match.handler;
 
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
-import com.amazonaws.util.StringUtils;
 import com.google.gson.Gson;
 import nz.org.vincenzo.cots.domain.Match;
 import nz.org.vincenzo.cots.domain.Player;
 import nz.org.vincenzo.cots.match.config.MatchConfiguration;
 import nz.org.vincenzo.cots.match.service.MatchService;
 import nz.org.vincenzo.cots.match.service.PlayerService;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.stereotype.Component;
 
-import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * The {@link RequestHandler} to retrieve {@link Match}es.
@@ -63,7 +63,7 @@ public class MatchesRequestHandler implements RequestHandler<Request, Response> 
         Response response = new Response();
         try {
             String accessToken = getAccessToken(request);
-            if (StringUtils.isNullOrEmpty(accessToken)) {
+            if (StringUtils.isBlank(accessToken)) {
                 throw new IllegalArgumentException("Authorization header not found");
             }
 
@@ -74,11 +74,11 @@ public class MatchesRequestHandler implements RequestHandler<Request, Response> 
 
             Map<String, String> queryParameters = request.getQueryStringParameters();
             String filter = queryParameters.getOrDefault("filter", "");
-            if (StringUtils.isNullOrEmpty(filter)) {
+            if (StringUtils.isBlank(filter)) {
                 throw new IllegalArgumentException("Filter not found");
             }
 
-            List<Match> matches;
+            Set<Match> matches;
             if ("active".equalsIgnoreCase(filter)) {
                 matches = matchService.retrieveActiveMatches();
             } else if ("finished".equalsIgnoreCase(filter)) {

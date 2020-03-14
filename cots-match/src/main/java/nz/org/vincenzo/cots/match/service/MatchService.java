@@ -126,25 +126,25 @@ public interface MatchService {
     List<Map<String, Set<Ship>>> replay(String matchUuid);
 
     /**
-     * Returns the {@link List} of finished {@link Match}es.
+     * Returns the {@link Set} of finished {@link Match}es.
      *
-     * @return the {@link List} of finished {@link Match}es
+     * @return the {@link Set} of finished {@link Match}es
      */
-    List<Match> retrieveFinishedMatches();
+    Set<Match> retrieveFinishedMatches();
 
     /**
-     * Returns the {@link List} of ongoing {@link Match}es.
+     * Returns the {@link Set} of ongoing {@link Match}es.
      *
-     * @return the {@link List} of ongoing {@link Match}es
+     * @return the {@link Set} of ongoing {@link Match}es
      */
-    List<Match> retrieveActiveMatches();
+    Set<Match> retrieveActiveMatches();
 
     /**
-     * Returns the {@link List} of new {@link Match}es.
+     * Returns the {@link Set} of new {@link Match}es.
      *
-     * @return the {@link List} of new {@link Match}es
+     * @return the {@link Set} of new {@link Match}es
      */
-    List<Match> retrieveUnstartedMatches();
+    Set<Match> retrieveUnstartedMatches();
 
     /**
      * Resigns from the {@link Match}. The {@link Player} who resigned losses.
@@ -172,5 +172,13 @@ public interface MatchService {
      */
     Match retrieveMatch(String matchUuid);
 
-    // FIXME deleteMatch(String playerUuid, String matchUuid);
+    /**
+     * Deletes a {@link Match} with the given UUID. Only the creator of the {@link Match} or an administrator can
+     * perform this operation.
+     *
+     * @param playerUuid the UUID of the {@link Player}
+     * @param matchUuid  the UUID of the {@link Match}
+     * @return {@code true} if the {@link Match} has been deleted; {@code false} otherwise
+     */
+    boolean deleteMatch(String playerUuid, String matchUuid);
 }

@@ -25,7 +25,6 @@ package nz.org.vincenzo.cots.match.dao;
 
 import nz.org.vincenzo.cots.domain.Match;
 
-import java.util.List;
 import java.util.Set;
 
 /**
@@ -52,37 +51,39 @@ public interface MatchDAO {
     Match retrieveMatch(String matchUuid);
 
     /**
-     * Returns the {@link List} of finished {@link Match}es.
+     * Returns the {@link Set} of finished {@link Match}es.
      *
      * @return the {@link Set} of finished {@link Match}es
      */
-    List<Match> retrieveFinishedMatches();
+    Set<Match> retrieveFinishedMatches();
 
     /**
      * Returns the {@link Set} of ongoing {@link Match}es.
      *
      * @return the {@link Set} of ongoing {@link Match}es
      */
-    List<Match> retrieveActiveMatches();
+    Set<Match> retrieveActiveMatches();
 
     /**
      * Returns the {@link Set} of new {@link Match}es.
      *
-     * @return the {@link Set} of new finished {@link Match}es
+     * @return the {@link Set} of new {@link Match}es
      */
-    List<Match> retrieveUnstartedMatches();
+    Set<Match> retrieveUnstartedMatches();
 
     /**
      * Updates a {@link Match}.
      *
      * @param match the {@link Match}
+     * @return {@code true} if the {@link Match} has been deleted; {@code false} otherwise
      */
-    void updateMatch(Match match);
+    boolean updateMatch(Match match);
 
     /**
      * Deletes a {@link Match}.
      *
      * @param match the {@link Match}
+     * @return {@code true} if the {@link Match} has been deleted; {@code false} otherwise
      */
-    void deleteMatch(Match match);
+    boolean deleteMatch(Match match);
 }

@@ -23,17 +23,17 @@
  */
 package nz.org.vincenzo.cots.match.service.impl;
 
-import com.amazonaws.util.StringUtils;
 import nz.org.vincenzo.cots.domain.Match;
 import nz.org.vincenzo.cots.domain.Ship;
 import nz.org.vincenzo.cots.match.dao.MatchDAO;
 import nz.org.vincenzo.cots.match.service.ArbitrationService;
 import nz.org.vincenzo.cots.match.service.MatchService;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.time.OffsetDateTime;
-import java.util.Date;
+import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -66,7 +66,7 @@ public class MatchServiceImpl implements MatchService {
 
     @Override
     public Match hostMatch(final String playerUuid) {
-        if (StringUtils.isNullOrEmpty(playerUuid)) {
+        if (StringUtils.isBlank(playerUuid)) {
             throw new IllegalArgumentException("Player UUID must not be null or empty");
         }
 
@@ -75,11 +75,11 @@ public class MatchServiceImpl implements MatchService {
 
     @Override
     public void cancelMatch(final String playerUuid, final String matchUuid) {
-        if (StringUtils.isNullOrEmpty(playerUuid)) {
+        if (StringUtils.isBlank(playerUuid)) {
             throw new IllegalArgumentException("Player UUID must not be null or empty");
         }
 
-        if (StringUtils.isNullOrEmpty(matchUuid)) {
+        if (StringUtils.isBlank(matchUuid)) {
             throw new IllegalArgumentException("Match UUID must not be null or empty");
         }
 
@@ -101,11 +101,11 @@ public class MatchServiceImpl implements MatchService {
 
     @Override
     public Match connectToMatch(final String playerUuid, final String matchUuid) {
-        if (StringUtils.isNullOrEmpty(playerUuid)) {
+        if (StringUtils.isBlank(playerUuid)) {
             throw new IllegalArgumentException("Player UUID must not be null or empty");
         }
 
-        if (StringUtils.isNullOrEmpty(matchUuid)) {
+        if (StringUtils.isBlank(matchUuid)) {
             throw new IllegalArgumentException("Match UUID must not be null or empty");
         }
 
@@ -118,9 +118,9 @@ public class MatchServiceImpl implements MatchService {
             throw new IllegalArgumentException("Match has already started");
         }
 
-        if (match.getWhitePlayer() == null) {
+        if (StringUtils.isBlank(match.getWhitePlayer())) {
             match.setWhitePlayer(playerUuid);
-        } else if (match.getBlackPlayer() == null) {
+        } else if (StringUtils.isBlank(match.getBlackPlayer())) {
             match.setBlackPlayer(playerUuid);
         } else {
             throw new IllegalArgumentException("Match already has 2 players");
@@ -136,11 +136,11 @@ public class MatchServiceImpl implements MatchService {
 
     @Override
     public void disconnectFromMatch(final String playerUuid, final String matchUuid) {
-        if (StringUtils.isNullOrEmpty(playerUuid)) {
+        if (StringUtils.isBlank(playerUuid)) {
             throw new IllegalArgumentException("Player UUID must not be null or empty");
         }
 
-        if (StringUtils.isNullOrEmpty(matchUuid)) {
+        if (StringUtils.isBlank(matchUuid)) {
             throw new IllegalArgumentException("Match UUID must not be null or empty");
         }
 
@@ -166,11 +166,11 @@ public class MatchServiceImpl implements MatchService {
 
     @Override
     public Map<String, Set<Ship>> positionShip(final String playerUuid, final String matchUuid, Ship ship) {
-        if (StringUtils.isNullOrEmpty(playerUuid)) {
+        if (StringUtils.isBlank(playerUuid)) {
             throw new IllegalArgumentException("Player UUID must not be null or empty");
         }
 
-        if (StringUtils.isNullOrEmpty(matchUuid)) {
+        if (StringUtils.isBlank(matchUuid)) {
             throw new IllegalArgumentException("Match UUID must not be null or empty");
         }
 
@@ -188,8 +188,8 @@ public class MatchServiceImpl implements MatchService {
         }
 
         Map<String, Set<Ship>> fleets;
-        if (!match.getTurns().isEmpty()) {
-            fleets = match.getTurns().get(0);
+        if (!match.getFleets().isEmpty()) {
+            fleets = match.getFleets();
         } else {
             fleets = new LinkedHashMap<>();
         }
@@ -198,24 +198,26 @@ public class MatchServiceImpl implements MatchService {
         Set<Ship> blackFleet = fleets.getOrDefault(match.getBlackPlayer(), getDefaultFleet(Ship.Color.BLACK));
 
         // validate starting ship coordinates
+        // FIXME move validation to arbitration service
+        // FIXME allow turning of the game board
         if (ship.getCoordinates().getX() < 0 || ship.getCoordinates().getX() > 8) {
             throw new IllegalArgumentException(
                     String.format("X coordinate is invalid for %s", ship.getShipClass()));
         }
 
-        if (ship.getColor() == Ship.Color.WHITE
+        if (Ship.Color.WHITE == ship.getColor()
                 && (ship.getCoordinates().getY() < 0 || ship.getCoordinates().getY() > 2)) {
             throw new IllegalArgumentException(
                     String.format("Y coordinate is invalid for %s", ship.getShipClass()));
         }
 
-        if (ship.getColor() == Ship.Color.BLACK
+        if (Ship.Color.BLACK == ship.getColor()
                 && (ship.getCoordinates().getY() < 5 || ship.getCoordinates().getY() > 7)) {
             throw new IllegalArgumentException(
                     String.format("Y coordinate is invalid for %s", ship.getShipClass()));
         }
 
-        if (match.getWhitePlayer().equals(playerUuid)) {
+        if (Ship.Color.WHITE == ship.getColor()) {
             whiteFleet.remove(ship);
             whiteFleet.add(ship);
         } else {
@@ -223,37 +225,28 @@ public class MatchServiceImpl implements MatchService {
             blackFleet.add(ship);
         }
 
-        // override the values of element 0
         fleets.put(match.getWhitePlayer(), whiteFleet);
         fleets.put(match.getBlackPlayer(), blackFleet);
-        match.getTurns().clear();
-        match.getTurns().add(fleets);
+        match.setFleets(fleets);
 
         matchDAO.updateMatch(match);
 
         // hide the ship classes of the opponent
         if (match.getWhitePlayer().equals(playerUuid)) {
-            for (Ship blackShip : blackFleet) {
-                blackShip.setShipClass(Ship.ShipClass.UNKNOWN);
-            }
-
-            return fleets;
+            blackFleet.forEach(blackShip -> blackShip.setShipClass(Ship.ShipClass.UNKNOWN));
         } else {
-            for (Ship whiteShip : whiteFleet) {
-                whiteShip.setShipClass(Ship.ShipClass.UNKNOWN);
-            }
-
-            return fleets;
+            whiteFleet.forEach(whiteShip -> whiteShip.setShipClass(Ship.ShipClass.UNKNOWN));
         }
+        return match.getFleets();
     }
 
     @Override
     public Match ready(final String playerUuid, final String matchUuid) {
-        if (StringUtils.isNullOrEmpty(playerUuid)) {
+        if (StringUtils.isBlank(playerUuid)) {
             throw new IllegalArgumentException("Player UUID must not be null or empty");
         }
 
-        if (StringUtils.isNullOrEmpty(matchUuid)) {
+        if (StringUtils.isBlank(matchUuid)) {
             throw new IllegalArgumentException("Match UUID must not be null or empty");
         }
 
@@ -270,26 +263,20 @@ public class MatchServiceImpl implements MatchService {
             throw new IllegalArgumentException("Player does not belong to match");
         }
 
-        if (match.getTurns().isEmpty()) {
+        if (match.getFleets().isEmpty()) {
             throw new IllegalArgumentException("All ships must be positioned");
         }
 
-        Map<String, Set<Ship>> fleets = match.getTurns().get(0);
+        Map<String, Set<Ship>> fleets = match.getFleets();
 
         if (playerUuid.equals(match.getWhitePlayer())) {
-            for (Ship ship : fleets.get(playerUuid)) {
-                if (ship.getCoordinates().equals(new Ship.Coordinates(-1, -1))) {
-                    throw new IllegalArgumentException(String.format("%s must be positioned", ship.getShipClass()));
-                }
+            if (arbitrationService.validateShips(fleets.get(playerUuid))) {
+                match.setWhitePlayerReady(true);
             }
-            match.setWhitePlayerReady(true);
         } else {
-            for (Ship ship : fleets.get(playerUuid)) {
-                if (ship.getCoordinates().equals(new Ship.Coordinates(-1, -1))) {
-                    throw new IllegalArgumentException(String.format("%s must be positioned", ship.getShipClass()));
-                }
+            if (arbitrationService.validateShips(fleets.get(playerUuid))) {
+                match.setBlackPlayerReady(true);
             }
-            match.setBlackPlayerReady(true);
         }
 
         matchDAO.updateMatch(match);
@@ -299,11 +286,11 @@ public class MatchServiceImpl implements MatchService {
 
     @Override
     public Match startMatch(final String playerUuid, final String matchUuid) {
-        if (StringUtils.isNullOrEmpty(playerUuid)) {
+        if (StringUtils.isBlank(playerUuid)) {
             throw new IllegalArgumentException("Player UUID must not be null or empty");
         }
 
-        if (StringUtils.isNullOrEmpty(matchUuid)) {
+        if (StringUtils.isBlank(matchUuid)) {
             throw new IllegalArgumentException("Match UUID must not be null or empty");
         }
 
@@ -326,7 +313,7 @@ public class MatchServiceImpl implements MatchService {
 
         if (playerUuid.equals(match.getHost())) {
             match.setStarted(true);
-            match.setStartDate(Date.from(OffsetDateTime.now().toInstant()));
+            match.setStartDate(LocalDateTime.now());
         } else {
             throw new IllegalArgumentException("Only the host can start the match");
         }
@@ -338,11 +325,11 @@ public class MatchServiceImpl implements MatchService {
 
     @Override
     public Map<String, Set<Ship>> moveShip(final String playerUuid, final String matchUuid, Ship ship) {
-        if (StringUtils.isNullOrEmpty(playerUuid)) {
+        if (StringUtils.isBlank(playerUuid)) {
             throw new IllegalArgumentException("Player UUID must not be null or empty");
         }
 
-        if (StringUtils.isNullOrEmpty(matchUuid)) {
+        if (StringUtils.isBlank(matchUuid)) {
             throw new IllegalArgumentException("Match UUID must not be null or empty");
         }
 
@@ -355,14 +342,13 @@ public class MatchServiceImpl implements MatchService {
             throw new IllegalArgumentException("Match has not yet started");
         }
 
-        if (!StringUtils.isNullOrEmpty(match.getWinner())) {
+        if (!StringUtils.isBlank(match.getWinner())) {
             throw new IllegalArgumentException("Game over");
         }
 
         if (isPlayerNotInMatch(playerUuid, match)) {
             throw new IllegalArgumentException("Player does not belong to match");
         }
-
 
         if (Ship.Color.WHITE == match.getTurn()) {
             if (!playerUuid.equals(match.getWhitePlayer())) {
@@ -374,8 +360,8 @@ public class MatchServiceImpl implements MatchService {
             }
         }
 
-        int turnNumber = match.getTurns().size() - 1;
-        Map<String, Set<Ship>> fleets = match.getTurns().get(turnNumber);
+        int turnNumber = match.getMoves().size() - 1;
+        Map<String, Set<Ship>> fleets = match.getMoves().get(turnNumber);
 
         Set<Ship> whiteFleet = fleets.get(match.getWhitePlayer());
         Set<Ship> blackFleet = fleets.get(match.getBlackPlayer());
@@ -409,7 +395,7 @@ public class MatchServiceImpl implements MatchService {
                     if (won) {
                         match.setWinner(match.getWhitePlayer());
                         match.setLoser(match.getBlackPlayer());
-                        match.setEndDate(Date.from(OffsetDateTime.now().toInstant()));
+                        match.setEndDate(LocalDateTime.now());
                     }
                 }
             }
@@ -465,7 +451,7 @@ public class MatchServiceImpl implements MatchService {
                     if (won) {
                         match.setWinner(match.getBlackPlayer());
                         match.setLoser(match.getWhitePlayer());
-                        match.setEndDate(Date.from(OffsetDateTime.now().toInstant()));
+                        match.setEndDate(LocalDateTime.now());
                     }
                 }
             }
@@ -546,15 +532,17 @@ public class MatchServiceImpl implements MatchService {
             }
         }
 
-        fleets.put(match.getWhitePlayer(), whiteFleet);
-        fleets.put(match.getBlackPlayer(), blackFleet);
-        match.getTurns().add(fleets);
+        if (Ship.Color.WHITE == match.getTurn()) {
+            match.setFleets(Map.of(match.getWhitePlayer(), whiteFleet, match.getBlackPlayer(), blackFleet));
+        } else {
+            match.setFleets(Map.of(match.getBlackPlayer(), blackFleet, match.getWhitePlayer(), whiteFleet));
+        }
 
         toggleTurn(match);
 
         // check if command ship is still in play
+        boolean lost = true;
         if (ship.getColor() == Ship.Color.WHITE) {
-            boolean lost = true;
             for (Ship whiteShip : whiteFleet) {
                 if (whiteShip.getShipClass() == Ship.ShipClass.BLUE_RIDGE_CLASS_COMMAND_SHIP) {
                     lost = false;
@@ -565,10 +553,9 @@ public class MatchServiceImpl implements MatchService {
             if (lost) {
                 match.setWinner(match.getBlackPlayer());
                 match.setLoser(match.getWhitePlayer());
-                match.setEndDate(Date.from(OffsetDateTime.now().toInstant()));
+                match.setEndDate(LocalDateTime.now());
             }
         } else {
-            boolean lost = true;
             for (Ship blackShip : blackFleet) {
                 if (blackShip.getShipClass() == Ship.ShipClass.BLUE_RIDGE_CLASS_COMMAND_SHIP) {
                     lost = false;
@@ -579,7 +566,7 @@ public class MatchServiceImpl implements MatchService {
             if (lost) {
                 match.setWinner(match.getWhitePlayer());
                 match.setLoser(match.getBlackPlayer());
-                match.setEndDate(Date.from(OffsetDateTime.now().toInstant()));
+                match.setEndDate(LocalDateTime.now());
             }
         }
 
@@ -590,7 +577,7 @@ public class MatchServiceImpl implements MatchService {
                         && blackShip.getCoordinates().getY() == 0) {
                     match.setWinner(match.getBlackPlayer());
                     match.setLoser(match.getWhitePlayer());
-                    match.setEndDate(Date.from(OffsetDateTime.now().toInstant()));
+                    match.setEndDate(LocalDateTime.now());
                 }
             }
         } else {
@@ -599,7 +586,7 @@ public class MatchServiceImpl implements MatchService {
                         && whiteShip.getCoordinates().getY() == 7) {
                     match.setWinner(match.getWhitePlayer());
                     match.setLoser(match.getBlackPlayer());
-                    match.setEndDate(Date.from(OffsetDateTime.now().toInstant()));
+                    match.setEndDate(LocalDateTime.now());
                 }
             }
         }
@@ -608,13 +595,9 @@ public class MatchServiceImpl implements MatchService {
 
         // hide the ship classes of the opponent
         if (match.getWhitePlayer().equals(playerUuid)) {
-            for (Ship blackShip : blackFleet) {
-                blackShip.setShipClass(Ship.ShipClass.UNKNOWN);
-            }
+            blackFleet.forEach(blackShip -> blackShip.setShipClass(Ship.ShipClass.UNKNOWN));
         } else {
-            for (Ship whiteShip : whiteFleet) {
-                whiteShip.setShipClass(Ship.ShipClass.UNKNOWN);
-            }
+            whiteFleet.forEach(whiteShip -> whiteShip.setShipClass(Ship.ShipClass.UNKNOWN));
         }
 
         return fleets;
@@ -627,35 +610,35 @@ public class MatchServiceImpl implements MatchService {
             throw new IllegalArgumentException("Match UUID is invalid");
         }
 
-        if (StringUtils.isNullOrEmpty(match.getWinner())) {
+        if (StringUtils.isBlank(match.getWinner())) {
             throw new IllegalArgumentException("Match is not yet over");
         }
 
-        return match.getTurns();
+        return match.getMoves();
     }
 
     @Override
-    public List<Match> retrieveFinishedMatches() {
+    public Set<Match> retrieveFinishedMatches() {
         return matchDAO.retrieveFinishedMatches();
     }
 
     @Override
-    public List<Match> retrieveActiveMatches() {
+    public Set<Match> retrieveActiveMatches() {
         return matchDAO.retrieveActiveMatches();
     }
 
     @Override
-    public List<Match> retrieveUnstartedMatches() {
+    public Set<Match> retrieveUnstartedMatches() {
         return matchDAO.retrieveUnstartedMatches();
     }
 
     @Override
     public Match resign(final String playerUuid, final String matchUuid) {
-        if (StringUtils.isNullOrEmpty(playerUuid)) {
+        if (StringUtils.isBlank(playerUuid)) {
             throw new IllegalArgumentException("Player UUID must not be null or empty");
         }
 
-        if (StringUtils.isNullOrEmpty(matchUuid)) {
+        if (StringUtils.isBlank(matchUuid)) {
             throw new IllegalArgumentException("Match UUID must not be null or empty");
         }
 
@@ -668,7 +651,7 @@ public class MatchServiceImpl implements MatchService {
             throw new IllegalArgumentException("Match has not yet started");
         }
 
-        if (!StringUtils.isNullOrEmpty(match.getWinner())) {
+        if (!StringUtils.isBlank(match.getWinner())) {
             throw new IllegalArgumentException("Game over");
         }
 
@@ -684,7 +667,7 @@ public class MatchServiceImpl implements MatchService {
             match.setLoser(match.getBlackPlayer());
         }
 
-        match.setEndDate(Date.from(OffsetDateTime.now().toInstant()));
+        match.setEndDate(LocalDateTime.now());
 
         matchDAO.updateMatch(match);
 
@@ -693,11 +676,11 @@ public class MatchServiceImpl implements MatchService {
 
     @Override
     public Match draw(final String playerUuid, final String matchUuid) {
-        if (StringUtils.isNullOrEmpty(playerUuid)) {
+        if (StringUtils.isBlank(playerUuid)) {
             throw new IllegalArgumentException("Player UUID must not be null or empty");
         }
 
-        if (StringUtils.isNullOrEmpty(matchUuid)) {
+        if (StringUtils.isBlank(matchUuid)) {
             throw new IllegalArgumentException("Match UUID must not be null or empty");
         }
 
@@ -710,7 +693,7 @@ public class MatchServiceImpl implements MatchService {
             throw new IllegalArgumentException("Match has not yet started");
         }
 
-        if (!StringUtils.isNullOrEmpty(match.getWinner())) {
+        if (!StringUtils.isBlank(match.getWinner())) {
             throw new IllegalArgumentException("Game over");
         }
 
@@ -720,17 +703,17 @@ public class MatchServiceImpl implements MatchService {
 
         // check if other player offered a draw
         if (playerUuid.equals(match.getWhitePlayer())) {
-            if (match.isBlackPlayerAgreedToDraw()) {
+            if (match.hasBlackPlayerAgreedToDraw()) {
                 match.setWhitePlayerAgreedToDraw(true);
                 match.setDraw(true);
-                match.setEndDate(Date.from(OffsetDateTime.now().toInstant()));
+                match.setEndDate(LocalDateTime.now());
             } else {
                 match.setWhitePlayerAgreedToDraw(true);
             }
         } else {
-            if (match.isWhitePlayerAgreedToDraw()) {
+            if (match.hasWhitePlayerAgreedToDraw()) {
                 match.setDraw(true);
-                match.setEndDate(Date.from(OffsetDateTime.now().toInstant()));
+                match.setEndDate(LocalDateTime.now());
             } else {
                 match.setBlackPlayerAgreedToDraw(true);
             }
@@ -743,13 +726,34 @@ public class MatchServiceImpl implements MatchService {
 
     @Override
     public Match retrieveMatch(final String matchUuid) {
-        if (StringUtils.isNullOrEmpty(matchUuid)) {
+        if (StringUtils.isBlank(matchUuid)) {
             throw new IllegalArgumentException("Match UUID must not be null or empty");
         }
 
         return matchDAO.retrieveMatch(matchUuid);
     }
 
+    @Override
+    public boolean deleteMatch(String playerUuid, String matchUuid) {
+        if (StringUtils.isBlank(playerUuid)) {
+            throw new IllegalArgumentException("Player UUID must not be null or empty");
+        }
+
+        if (StringUtils.isBlank(matchUuid)) {
+            throw new IllegalArgumentException("Match UUID must not be null or empty");
+        }
+
+        Match match = matchDAO.retrieveMatch(matchUuid);
+        if (match == null) {
+            throw new IllegalArgumentException("Match UUID is invalid");
+        }
+
+        if (!match.getHost().equals(playerUuid)) {
+            throw new IllegalArgumentException("Match cannot be deleted by the given player UUID");
+        }
+
+        return matchDAO.deleteMatch(match);
+    }
 
     private boolean isPlayerNotInMatch(String playerUuid, Match match) {
         return !match.getWhitePlayer().equals(playerUuid)
@@ -758,18 +762,16 @@ public class MatchServiceImpl implements MatchService {
 
     private Set<Ship> getDefaultFleet(Ship.Color color) {
         Set<Ship> ships = new HashSet<>();
-        for (Ship.ShipClass shipClass : Ship.ShipClass.values()) {
-            if (shipClass == Ship.ShipClass.UNKNOWN) {
-                continue;
-            }
-
-            Ship ship = new Ship();
-            ship.setColor(color);
-            ship.setShipClass(shipClass);
-            ship.setCoordinates(new Ship.Coordinates());
-
-            ships.add(ship);
-        }
+        Arrays
+                .stream(Ship.ShipClass.values())
+                .filter(shipClass -> shipClass != Ship.ShipClass.UNKNOWN)
+                .forEachOrdered(shipClass -> {
+                    Ship ship = new Ship();
+                    ship.setColor(color);
+                    ship.setShipClass(shipClass);
+                    ship.setCoordinates(new Ship.Coordinates());
+                    ships.add(ship);
+                });
 
         return ships;
     }

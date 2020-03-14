@@ -1,11 +1,35 @@
+/*
+ * This file is part of Command of the Sea.
+ *
+ * Copyright (c) 2019 Vincenzo
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
 package nz.org.vincenzo.cots.match.service;
 
 import nz.org.vincenzo.cots.domain.Ship;
 import nz.org.vincenzo.cots.match.service.impl.ArbitrationServiceImpl;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -15,11 +39,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  *
  * @author Rey Vincent Babilonia
  */
-@ExtendWith(MockitoExtension.class)
 class ArbitrationServiceTest {
 
-    @InjectMocks
-    private ArbitrationServiceImpl arbitrationService;
+    private ArbitrationService arbitrationService = new ArbitrationServiceImpl();
 
     @Test
     void arbitrateWithNullArguments() {
@@ -182,5 +204,28 @@ class ArbitrationServiceTest {
         defendingShip.setCoordinates(new Ship.Coordinates(3, 4));
 
         assertThat(arbitrationService.arbitrate(attackingShip, defendingShip)).isNull();
+    }
+
+    @Test
+    void givenInvalidShipsWhenValidateShipsInvokedThenThrowException() {
+        assertThatThrownBy(() -> arbitrationService.validateShips(getDefaultFleet(Ship.Color.WHITE)))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageEndingWith("must be positioned");
+    }
+
+    private Set<Ship> getDefaultFleet(Ship.Color color) {
+        Set<Ship> ships = new HashSet<>();
+        Arrays
+                .stream(Ship.ShipClass.values())
+                .filter(shipClass -> shipClass != Ship.ShipClass.UNKNOWN)
+                .forEachOrdered(shipClass -> {
+                    Ship ship = new Ship();
+                    ship.setColor(color);
+                    ship.setShipClass(shipClass);
+                    ship.setCoordinates(new Ship.Coordinates());
+                    ships.add(ship);
+                });
+
+        return ships;
     }
 }

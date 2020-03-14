@@ -25,12 +25,12 @@ package nz.org.vincenzo.cots.match.handler;
 
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
-import com.amazonaws.util.StringUtils;
 import nz.org.vincenzo.cots.domain.Match;
 import nz.org.vincenzo.cots.domain.Player;
 import nz.org.vincenzo.cots.match.config.MatchConfiguration;
 import nz.org.vincenzo.cots.match.service.MatchService;
 import nz.org.vincenzo.cots.match.service.PlayerService;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
@@ -58,7 +58,7 @@ public class MatchHostingRequestHandler implements RequestHandler<Request, Respo
         Response response = new Response();
         try {
             String accessToken = getAccessToken(request);
-            if (StringUtils.isNullOrEmpty(accessToken)) {
+            if (StringUtils.isBlank(accessToken)) {
                 throw new IllegalArgumentException("Authorization header not found");
             }
 

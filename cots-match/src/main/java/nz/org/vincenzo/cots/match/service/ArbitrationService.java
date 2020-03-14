@@ -25,6 +25,8 @@ package nz.org.vincenzo.cots.match.service;
 
 import nz.org.vincenzo.cots.domain.Ship;
 
+import java.util.Set;
+
 /**
  * The service for arbitrating a {@link nz.org.vincenzo.cots.domain.Match}.
  *
@@ -41,6 +43,14 @@ public interface ArbitrationService {
      * @return the winning {@link Ship} or {@code null} if the 2 {@link Ship}s are of the same {@link Ship.ShipClass}
      */
     Ship arbitrate(Ship attackingShip, Ship defendingShip);
+
+    /**
+     * Validates the position of the {@link Set} of {@link Ship}s.
+     *
+     * @param ships the {@link Set} of {@link Ship}s
+     * @return {@code true} if all the {@link Ship}s have been positioned
+     */
+    boolean validateShips(Set<Ship> ships);
 
     // FIXME
     // A player shall be given 5 minutes to arrange his pieces from the time his opponent joins a match.
