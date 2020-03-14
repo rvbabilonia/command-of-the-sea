@@ -1,17 +1,14 @@
 plugins {
     id 'java-library'
     id 'idea'
+    id 'org.owasp.dependencycheck'
     id 'com.github.ben-manes.versions'
 }
 
 ext {
-    awsJavaSdkVersion = "1.11.742"
-
     gsonVersion = "2.8.6"
 }
 
 dependencies {
-    implementation "com.amazonaws:aws-java-sdk-dynamodb:$awsJavaSdkVersion"
-
     implementation "com.google.code.gson:gson:$gsonVersion"
 }

@@ -23,9 +23,6 @@
  */
 package nz.org.vincenzo.cots.domain;
 
-import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBAttribute;
-import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBDocument;
-import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBTypeConvertedEnum;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.annotations.Expose;
@@ -37,7 +34,6 @@ import java.util.Objects;
  *
  * @author Rey Vincent Babilonia
  */
-@DynamoDBDocument
 public class Ship {
 
     @Expose
@@ -54,7 +50,6 @@ public class Ship {
      *
      * @return the {@link Color}
      */
-    @DynamoDBTypeConvertedEnum
     public Color getColor() {
         return color;
     }
@@ -73,7 +68,6 @@ public class Ship {
      *
      * @return the {@link ShipClass}
      */
-    @DynamoDBTypeConvertedEnum
     public ShipClass getShipClass() {
         return shipClass;
     }
@@ -92,7 +86,6 @@ public class Ship {
      *
      * @return the {@link Coordinates}
      */
-    @DynamoDBAttribute
     public Coordinates getCoordinates() {
         return coordinates;
     }
@@ -256,7 +249,6 @@ public class Ship {
     /**
      * The {@link Ship}'s coordinates.
      */
-    @DynamoDBDocument
     public static class Coordinates {
 
         @Expose
@@ -288,7 +280,6 @@ public class Ship {
          *
          * @return the X coordinate
          */
-        @DynamoDBAttribute
         public int getX() {
             return x;
         }
@@ -307,7 +298,6 @@ public class Ship {
          *
          * @return the Y coordinate
          */
-        @DynamoDBAttribute
         public int getY() {
             return y;
         }
