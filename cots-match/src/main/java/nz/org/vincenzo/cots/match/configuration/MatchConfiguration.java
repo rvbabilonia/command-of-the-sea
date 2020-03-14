@@ -21,7 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package nz.org.vincenzo.cots.match.config;
+package nz.org.vincenzo.cots.match.configuration;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;

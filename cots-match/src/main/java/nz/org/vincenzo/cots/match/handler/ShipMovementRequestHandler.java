@@ -29,7 +29,7 @@ import com.google.gson.Gson;
 import nz.org.vincenzo.cots.domain.Match;
 import nz.org.vincenzo.cots.domain.Player;
 import nz.org.vincenzo.cots.domain.Ship;
-import nz.org.vincenzo.cots.match.config.MatchConfiguration;
+import nz.org.vincenzo.cots.match.configuration.MatchConfiguration;
 import nz.org.vincenzo.cots.match.service.MatchService;
 import nz.org.vincenzo.cots.match.service.PlayerService;
 import org.apache.commons.lang3.StringUtils;
