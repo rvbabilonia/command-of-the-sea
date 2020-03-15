@@ -49,8 +49,6 @@ public class Player {
     @Expose
     private String nickname;
 
-    private String password;
-
     @Expose
     private String avatar;
 
@@ -120,24 +118,6 @@ public class Player {
      */
     public void setNickname(String nickname) {
         this.nickname = nickname;
-    }
-
-    /**
-     * Returns the password.
-     *
-     * @return the password
-     */
-    public String getPassword() {
-        return password;
-    }
-
-    /**
-     * Sets the password.
-     *
-     * @param password the password
-     */
-    public void setPassword(String password) {
-        this.password = password;
     }
 
     /**
@@ -277,13 +257,13 @@ public class Player {
     public static final class Statistics {
 
         @Expose
-        private BigDecimal wins;
+        private BigDecimal wins = BigDecimal.ZERO;
 
         @Expose
-        private BigDecimal losses;
+        private BigDecimal losses = BigDecimal.ZERO;
 
         @Expose
-        private BigDecimal draws;
+        private BigDecimal draws = BigDecimal.ZERO;
 
         /**
          * Returns the number of wins.
