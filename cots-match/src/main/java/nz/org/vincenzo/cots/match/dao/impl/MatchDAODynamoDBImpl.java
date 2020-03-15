@@ -28,6 +28,7 @@ import com.google.gson.reflect.TypeToken;
 import nz.org.vincenzo.cots.domain.Match;
 import nz.org.vincenzo.cots.domain.Ship;
 import nz.org.vincenzo.cots.match.dao.MatchDAO;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -316,25 +317,25 @@ public class MatchDAODynamoDBImpl implements MatchDAO {
         key.put("uuid", AttributeValue.builder().s(match.getUuid()).build());
 
         Map<String, AttributeValueUpdate> updatedValues = new HashMap<>();
-        if (match.getWhitePlayer() != null) {
+        if (StringUtils.isNotBlank(match.getWhitePlayer())) {
             updatedValues.put("whitePlayer", AttributeValueUpdate.builder()
                     .value(AttributeValue.builder().s(match.getWhitePlayer()).build())
                     .action(AttributeAction.PUT)
                     .build());
         }
-        if (match.getBlackPlayer() != null) {
+        if (StringUtils.isNotBlank(match.getBlackPlayer())) {
             updatedValues.put("blackPlayer", AttributeValueUpdate.builder()
                     .value(AttributeValue.builder().s(match.getBlackPlayer()).build())
                     .action(AttributeAction.PUT)
                     .build());
         }
-        if (match.getWinner() != null) {
+        if (StringUtils.isNotBlank(match.getWinner())) {
             updatedValues.put("winner", AttributeValueUpdate.builder()
                     .value(AttributeValue.builder().s(match.getWinner()).build())
                     .action(AttributeAction.PUT)
                     .build());
         }
-        if (match.getLoser() != null) {
+        if (StringUtils.isNotBlank(match.getLoser())) {
             updatedValues.put("loser", AttributeValueUpdate.builder()
                     .value(AttributeValue.builder().s(match.getLoser()).build())
                     .action(AttributeAction.PUT)

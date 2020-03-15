@@ -243,11 +243,12 @@ class MatchDAOTest {
         assertThat(actual)
                 .extracting("uuid", "whitePlayer", "blackPlayer", "draw",
                         "whitePlayerAgreedToDraw", "blackPlayerAgreedToDraw", "host", "started",
-                        "whitePlayerReady", "blackPlayerReady", "fleets")
+                        "whitePlayerReady", "blackPlayerReady")
                 .containsExactly(expected.getUuid(), whitePlayer, blackPlayer, false,
                         false, false, playerUuid, true,
-                        true, true, Collections.emptyMap());
+                        true, true);
         assertThat(actual.getMoves()).hasSize(2);
+        assertThat(actual.getFleets()).hasSize(1);
 
         assertThat(actual.getMoves().get(0)).isEqualTo(Map.of(whitePlayer, Set.of(whiteShip)));
         assertThat(actual.getMoves().get(1)).isEqualTo(Map.of(blackPlayer, Set.of(blackShip)));
