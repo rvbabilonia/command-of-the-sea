@@ -25,16 +25,14 @@ package nz.org.vincenzo.cots.player.handler;
 
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
-import com.amazonaws.util.StringUtils;
 import nz.org.vincenzo.cots.player.configuration.PlayerConfiguration;
 import nz.org.vincenzo.cots.player.service.PlayerService;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.stereotype.Component;
-
-import java.util.Arrays;
 
 /**
  * The {@link RequestHandler} for player logout.
@@ -56,7 +54,7 @@ public class LogoutRequestHandler implements RequestHandler<Request, Response> {
         Response response = new Response();
         try {
             String accessToken = getAccessToken(request);
-            if (StringUtils.isNullOrEmpty(accessToken)) {
+            if (StringUtils.isBlank(accessToken)) {
                 throw new IllegalArgumentException("Authorization header not found");
             }
 

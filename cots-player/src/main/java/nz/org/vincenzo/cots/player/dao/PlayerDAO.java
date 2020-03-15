@@ -25,7 +25,7 @@ package nz.org.vincenzo.cots.player.dao;
 
 import nz.org.vincenzo.cots.domain.Player;
 
-import java.util.List;
+import java.util.Set;
 
 /**
  * The domain access object for player.
@@ -39,21 +39,20 @@ public interface PlayerDAO {
      *
      * @param nickname     the nickname
      * @param emailAddress the email address
-     * @param password     the scrypt-hashed password
      * @return the newly-created {@link Player}
      */
-    Player createPlayer(String nickname, String emailAddress, String password);
+    Player createPlayer(String nickname, String emailAddress);
 
     /**
      * Returns the {@link Player} matching the given UUID.
      *
-     * @param playerUuid the UUID
+     * @param playerUuid the UUID of the {@link Player}
      * @return the {@link Player}
      */
     Player retrievePlayerByUuid(String playerUuid);
 
     /**
-     * Returns the {@link Player} matching the given access token.
+     * Returns the {@link Player} matching the given access token from a secondary index.
      *
      * @param accessToken the access token
      * @return the {@link Player}
@@ -61,25 +60,41 @@ public interface PlayerDAO {
     Player retrievePlayerByAccessToken(String accessToken);
 
     /**
-     * Returns the {@link List} of {@link Player}s matching the given filters.
+     * Returns the {@link Player} matching the given email address from a secondary index.
      *
-     * @param player     the {@link Player}
-     * @param indexNames the index names
-     * @return the {@link List} of {@link Player}s
+     * @param emailAddress the email address
+     * @return the {@link Player}
      */
-    List<Player> retrievePlayers(Player player, String... indexNames);
+    Player retrievePlayerByEmailAddress(String emailAddress);
 
     /**
-     * Returns the {@link List} of {@link Player}s .
+     * Returns the {@link Player} matching the given nickname from a secondary index.
      *
-     * @return the {@link List} of {@link Player}s
+     * @param nickname the nickname
+     * @return the {@link Player}
      */
-    List<Player> retrievePlayers();
+    Player retrievePlayerByNickname(String nickname);
+
+    /**
+     * Returns the {@link Set} of {@link Player}s .
+     *
+     * @return the {@link Set} of {@link Player}s
+     */
+    Set<Player> retrievePlayers();
 
     /**
      * Updates a {@link Player}.
      *
      * @param player the {@link Player}
+     * @return {@code true} if the {@link Player} has been updated; {@code false} otherwise
      */
-    void updatePlayer(Player player);
+    boolean updatePlayer(Player player);
+
+    /**
+     * Deletes a {@link Player}.
+     *
+     * @param playerUUid the UUID of the {@link Player}
+     * @return {@code true} if the {@link Player} has been deleted; {@code false} otherwise
+     */
+    boolean deletePlayer(String playerUUid);
 }

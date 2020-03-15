@@ -41,7 +41,9 @@ import org.springframework.stereotype.Component;
  * The {@link RequestHandler} for player registration.
  *
  * @author Rey Vincent Babilonia
+ * @deprecated Registration is now handled by Cognito.
  */
+@Deprecated
 @Component
 public class RegistrationRequestHandler implements RequestHandler<Request, Response> {
 
@@ -64,8 +66,8 @@ public class RegistrationRequestHandler implements RequestHandler<Request, Respo
             String password = (String) body.get("password");
             String passwordVerification = (String) body.get("passwordVerification");
 
-            Player player = playerService.createPlayer(nickname, emailAddress, emailAddressVerification, password,
-                    passwordVerification);
+            Player player = playerService.createPlayer(nickname, emailAddress
+            );
 
             response.setStatusCode(201);
             response.setBody(player.toString());

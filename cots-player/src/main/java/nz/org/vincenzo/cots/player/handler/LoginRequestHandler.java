@@ -36,13 +36,13 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.stereotype.Component;
 
-import java.util.Arrays;
-
 /**
  * The {@link RequestHandler} for player authentication.
  *
  * @author Rey Vincent Babilonia
+ * @deprecated Authentication is now handled by Cognito.
  */
+@Deprecated
 @Component
 public class LoginRequestHandler implements RequestHandler<Request, Response> {
 
@@ -60,9 +60,9 @@ public class LoginRequestHandler implements RequestHandler<Request, Response> {
         try {
             JSONObject body = (JSONObject) parser.parse(request.getBody());
             String emailAddress = (String) body.get("emailAddress");
-            String password = (String) body.get("password");
+            String accessToken = (String) body.get("accessToken");
 
-            String accessToken = playerService.login(emailAddress, password);
+            accessToken = playerService.login(emailAddress, accessToken);
 
             response.setStatusCode(200);
             response.setBody(String.format("{\"accessToken\":\"%s\"}", accessToken));

@@ -25,7 +25,7 @@ package nz.org.vincenzo.cots.player.service;
 
 import nz.org.vincenzo.cots.domain.Player;
 
-import java.util.List;
+import java.util.Set;
 
 /**
  * The service for player.
@@ -37,15 +37,11 @@ public interface PlayerService {
     /**
      * Creates a {@link Player}.
      *
-     * @param nickname                 the nickname
-     * @param emailAddress             the email address
-     * @param emailAddressVerification the email address for verification
-     * @param password                 the password
-     * @param passwordVerification     the password for verification
+     * @param nickname     the nickname
+     * @param emailAddress the email address from Cognito
      * @return the newly-created {@link Player}
      */
-    Player createPlayer(String nickname, String emailAddress, String emailAddressVerification, String password,
-                        String passwordVerification);
+    Player createPlayer(String nickname, String emailAddress);
 
     /**
      * Returns the {@link Player} matching the given UUID.
@@ -64,20 +60,37 @@ public interface PlayerService {
     Player retrievePlayerByAccessToken(String accessToken);
 
     /**
-     * Returns the {@link List} of {@link Player}s matching the given filters.
+     * Returns the {@link Player} matching the given nickname.
      *
-     * @return the {@link List} of {@link Player}s
+     * @param nickname the nickname
+     * @return the {@link Player}
      */
-    List<Player> retrievePlayers();
+    Player retrievePlayerByNickname(String nickname);
 
     /**
-     * Authenticates a {@link Player}.
+     * Returns the {@link Player} matching the given email address.
      *
      * @param emailAddress the email address
-     * @param password     the password
+     * @return the {@link Player}
+     */
+    Player retrievePlayerByEmailAddress(String emailAddress);
+
+    /**
+     * Returns the {@link Set} of {@link Player}s matching the given filters.
+     *
+     * @return the {@link Set} of {@link Player}s
+     */
+    Set<Player> retrievePlayers();
+
+    /**
+     * "Logs in" a {@link Player} who has successfully authenticated in Cognito using his email address and the
+     * generated access token.
+     *
+     * @param emailAddress the email address
+     * @param accessToken  the access token
      * @return the access token
      */
-    String login(String emailAddress, String password);
+    String login(String emailAddress, String accessToken);
 
     /**
      * Logs out a {@link Player}.
@@ -91,18 +104,21 @@ public interface PlayerService {
      *
      * @param player the {@link Player}
      */
-    Player updatePlayer(Player player, String result);
+    Player updateStatistics(Player player, String result);
+
+    /**
+     * Updates a {@link Player}'s tournament {@link Player.Statistics}.
+     *
+     * @param player the {@link Player}
+     */
+    Player updateTournamentStatistics(Player player, String result, String tournament);
 
     /**
      * Updates a {@link Player}'s details.
      *
-     * @param accessToken          the access token
-     * @param nickname             the nickname
-     * @param password             the password
-     * @param passwordVerification the password verification
-     * @param avatar               the avatar
+     * @param accessToken the access token
+     * @param avatar      the avatar
      * @return the {@link Player}
      */
-    Player updatePlayer(String accessToken, String nickname, String password, String passwordVerification,
-                        String avatar);
+    Player updateAvatar(String accessToken, String avatar);
 }

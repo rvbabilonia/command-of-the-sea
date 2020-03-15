@@ -1,95 +1,52 @@
-buildscript {
-    repositories {
-        mavenCentral()
-    }
-    dependencies {
-        classpath "org.springframework.boot:spring-boot-gradle-plugin:2.2.0.RELEASE"
-    }
-}
-
-apply plugin: "java"
-apply plugin: "org.springframework.boot"
-
-group = "nz.org.vincenzo"
-version = "1.0-SNAPSHOT"
-description = "The player module"
-sourceCompatibility = "1.8"
-
-repositories {
-    mavenCentral()
-    jcenter()
+plugins {
+    id 'org.springframework.boot' version '2.2.5.RELEASE'
+    id 'io.spring.dependency-management' version '1.0.9.RELEASE'
+    id 'java'
+    id 'org.owasp.dependencycheck'
+    id 'com.github.ben-manes.versions'
 }
 
 ext {
-    awsJavaSdkVersion = "1.11.660"
-    awsLambdaJavaCoreVersion = "1.2.0"
-    awsLambdaJavaLog4JVersion = "1.0.0"
+    awsVersion = '2.10.86'
+    awsLambdaJavaCoreVersion = '1.2.0'
+    awsLambdaJavaEventsVersion = '2.2.7'
+    awsLambdaJavaLog4JVersion = '1.0.0'
+    slf4jVersion = '1.7.30'
+    gsonVersion = '2.8.6'
+    jsonSimpleVersion = '1.1.1'
+    langVersion = '3.9'
+    validatorVersion = '1.6'
 
-    gsonVersion = "2.8.6"
-
-    jsonSimpleVersion = "1.1.1"
-
-    scryptVersion = "1.4.0"
-
-    commonsValidatorVersion = "1.6"
-
-    slf4jVersion = "1.7.28"
-
-    springVersion = "5.2.0.RELEASE"
-    springBootVersion = "2.2.0.RELEASE"
-
-    junitVersion = "5.5.2"
-
-    mockitoVersion = "2.24.0"
-
-    assertjVersion = "3.11.1"
-
-    dynamodbV1Version = "1.0.0"
+    mockitoVersion = '3.3.3'
+    assertjVersion = '3.15.0'
+    dynamoV2Version = '5.0.4'
+    awsJavaSdkVersion = '1.11.660'
 }
 
 dependencies {
     implementation project(':cots-domain')
-
-    // AWS
-    implementation "com.amazonaws:aws-java-sdk-dynamodb:$awsJavaSdkVersion"
-    implementation "com.amazonaws:aws-java-sdk-lambda:$awsJavaSdkVersion"
+    implementation "org.springframework.boot:spring-boot"
+    implementation "org.springframework.boot:spring-boot-autoconfigure"
+    implementation "software.amazon.awssdk:aws-sdk-java:$awsVersion"
+    implementation "software.amazon.awssdk:dynamodb:$awsVersion"
+    implementation "software.amazon.awssdk:lambda:$awsVersion"
     implementation "com.amazonaws:aws-lambda-java-core:$awsLambdaJavaCoreVersion"
+    implementation "com.amazonaws:aws-lambda-java-events:$awsLambdaJavaEventsVersion"
     implementation "com.amazonaws:aws-lambda-java-log4j:$awsLambdaJavaLog4JVersion"
-
-    // GSON
+    implementation "org.slf4j:slf4j-api:$slf4jVersion"
     implementation "com.google.code.gson:gson:$gsonVersion"
-
-    // JSON
     implementation "com.googlecode.json-simple:json-simple:$jsonSimpleVersion"
+    implementation "org.apache.commons:commons-lang3:$langVersion"
+    implementation "commons-validator:commons-validator:$validatorVersion"
 
-    // Scrypt
-    implementation "com.lambdaworks:scrypt:$scryptVersion"
-
-    // Commons
-    implementation "commons-validator:commons-validator:$commonsValidatorVersion"
-
-    // Logging
-    implementation "org.slf4j:jcl-over-slf4j:$slf4jVersion"
-    implementation "org.slf4j:slf4j-log4j12:$slf4jVersion"
-
-    // Spring
-    implementation "org.springframework:spring-context:$springVersion"
-    implementation "org.springframework.boot:spring-boot:$springBootVersion"
-    implementation "org.springframework.boot:spring-boot-autoconfigure:$springBootVersion"
-
-    // Jupiter (JUnit 5)
-    testImplementation "org.junit.jupiter:junit-jupiter-api:$junitVersion"
-    testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:$junitVersion"
-
-    // Mockito
+    testImplementation("org.springframework.boot:spring-boot-starter-test") {
+        exclude group: "org.junit.vintage", module: "junit-vintage-engine"
+        exclude module : 'spring-boot-starter-logging'
+    }
     testImplementation "org.mockito:mockito-core:$mockitoVersion"
     testImplementation "org.mockito:mockito-junit-jupiter:$mockitoVersion"
-
-    // AssertJ assertions
     testImplementation "org.assertj:assertj-core:$assertjVersion"
-
-    // DynamoDB local
-    testImplementation "by.dev.madhead.aws-junit5:dynamodb-v1:$dynamodbV1Version"
+    testImplementation "by.dev.madhead.aws-junit5:dynamo-v2:$dynamoV2Version"
 }
 
 task buildZip(type: Zip) {
@@ -103,5 +60,5 @@ task buildZip(type: Zip) {
 build.dependsOn buildZip
 
 bootJar {
-    mainClassName = "nz.org.vincenzo.cots.player.application.PlayerApplication"
+    mainClassName = "nz.org.vincenzo.cots.player.PlayerApplication"
 }

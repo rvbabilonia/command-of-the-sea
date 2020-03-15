@@ -39,7 +39,7 @@ public class StatisticsRequestHandler implements RequestHandler<Request, Respons
 
             Player player = playerService.retrievePlayerByUuid(playerUuid);
 
-            player = playerService.updatePlayer(player, result);
+            player = playerService.updateStatistics(player, result);
 
             response.setStatusCode(200);
             response.setBody(player.toString());

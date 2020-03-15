@@ -2,10 +2,10 @@ package nz.org.vincenzo.cots.player.handler;
 
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
-import com.amazonaws.util.StringUtils;
 import nz.org.vincenzo.cots.domain.Player;
 import nz.org.vincenzo.cots.player.configuration.PlayerConfiguration;
 import nz.org.vincenzo.cots.player.service.PlayerService;
+import org.apache.commons.lang3.StringUtils;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.slf4j.Logger;
@@ -37,17 +37,14 @@ public class ModificationRequestHandler implements RequestHandler<Request, Respo
         Response response = new Response();
         try {
             JSONObject body = (JSONObject) parser.parse(request.getBody());
-            String nickname = (String) body.get("nickname");
-            String password = (String) body.get("password");
-            String passwordVerification = (String) body.get("passwordVerification");
             String avatar = (String) body.get("avatar");
 
             String accessToken = getAccessToken(request);
-            if (StringUtils.isNullOrEmpty(accessToken)) {
+            if (StringUtils.isBlank(accessToken)) {
                 throw new IllegalArgumentException("Authorization header not found");
             }
 
-            Player player = playerService.updatePlayer(accessToken, nickname, password, passwordVerification, avatar);
+            Player player = playerService.updateAvatar(accessToken, avatar);
 
             response.setStatusCode(200);
             response.setBody(player.toString());

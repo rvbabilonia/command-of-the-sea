@@ -23,11 +23,8 @@
  */
 package nz.org.vincenzo.cots.player.configuration;
 
-import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
-import com.amazonaws.regions.Regions;
-import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
-import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClientBuilder;
-import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBMapper;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import nz.org.vincenzo.cots.player.dao.PlayerDAO;
 import nz.org.vincenzo.cots.player.dao.impl.PlayerDAODynamoDBImpl;
 import nz.org.vincenzo.cots.player.service.PlayerService;
@@ -35,6 +32,9 @@ import nz.org.vincenzo.cots.player.service.impl.PlayerServiceImpl;
 import org.json.simple.parser.JSONParser;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 
 /**
  * The player configuration.
@@ -45,26 +45,16 @@ import org.springframework.context.annotation.Configuration;
 public class PlayerConfiguration {
 
     /**
-     * Returns the {@link AmazonDynamoDB} client.
+     * Returns the {@link DynamoDbClient}.
      *
-     * @return the {@link AmazonDynamoDB} client
+     * @return the {@link DynamoDbClient}
      */
     @Bean
-    public AmazonDynamoDB amazonDynamoDB() {
-        return AmazonDynamoDBClientBuilder.standard()
-                .withRegion(Regions.AP_SOUTHEAST_2)
-                .withCredentials(new DefaultAWSCredentialsProviderChain())
+    public DynamoDbClient dynamoDbClient() {
+        return DynamoDbClient.builder()
+                .region(Region.AP_SOUTHEAST_2)
+                .credentialsProvider(DefaultCredentialsProvider.builder().build())
                 .build();
-    }
-
-    /**
-     * Returns the {@link DynamoDBMapper}.
-     *
-     * @return the {@link DynamoDBMapper}
-     */
-    @Bean
-    public DynamoDBMapper dynamoDBMapper() {
-        return new DynamoDBMapper(amazonDynamoDB());
     }
 
     /**
@@ -78,13 +68,23 @@ public class PlayerConfiguration {
     }
 
     /**
+     * Returns the {@link Gson}.
+     *
+     * @return the {@link Gson}
+     */
+    @Bean
+    public Gson gson() {
+        return new GsonBuilder().create();
+    }
+
+    /**
      * Returns the {@link PlayerDAO}.
      *
      * @return the {@link PlayerDAO}
      */
     @Bean
     public PlayerDAO playerDAO() {
-        return new PlayerDAODynamoDBImpl(dynamoDBMapper());
+        return new PlayerDAODynamoDBImpl(dynamoDbClient(), gson());
     }
 
     /**
