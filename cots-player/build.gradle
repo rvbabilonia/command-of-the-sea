@@ -17,7 +17,6 @@ ext {
     langVersion = '3.9'
     validatorVersion = '1.6'
 
-    mockitoVersion = '3.3.3'
     assertjVersion = '3.15.0'
     dynamoV2Version = '5.0.4'
     awsJavaSdkVersion = '1.11.660'
@@ -43,8 +42,6 @@ dependencies {
         exclude group: "org.junit.vintage", module: "junit-vintage-engine"
         exclude module : 'spring-boot-starter-logging'
     }
-    testImplementation "org.mockito:mockito-core:$mockitoVersion"
-    testImplementation "org.mockito:mockito-junit-jupiter:$mockitoVersion"
     testImplementation "org.assertj:assertj-core:$assertjVersion"
     testImplementation "by.dev.madhead.aws-junit5:dynamo-v2:$dynamoV2Version"
 }
@@ -53,8 +50,9 @@ task buildZip(type: Zip) {
     from compileJava
     from processResources
     into('lib') {
-        from configurations.runtime
+        from configurations.runtimeClasspath
     }
+    archiveFileName = 'cots-player.zip'
 }
 
 build.dependsOn buildZip

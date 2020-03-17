@@ -1,61 +1,180 @@
 AWSTemplateFormatVersion: 2010-09-09
+
+Description: The Command of the Sea CloudFormation template.
+
+Parameters:
+
 Resources:
+  # IAM
+
   CotsExecutionRole:
     Description: Creating service role in IAM for AWS Lambda
-    Type: 'AWS::IAM::Role'
+    Type: "AWS::IAM::Role"
     Properties:
-      RoleName: cots-execution-role
+      RoleName: cots-lambda-role
       AssumeRolePolicyDocument:
+        Version: "2012-10-17"
         Statement:
-          - Effect: Allow
+          - Effect: "Allow"
             Principal:
               Service:
-                - 'lambda.amazonaws.com'
-                - 'apigateway.amazonaws.com'
-            Action: 'sts:AssumeRole'
+                - "lambda.amazonaws.com"
+                - "apigateway.amazonaws.com"
+            Action: "sts:AssumeRole"
       Path: /
       ManagedPolicyArns:
-        - 'arn:aws:iam::aws:policy/AWSXrayWriteOnlyAccess'
-        - 'arn:aws:iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs'
-        - 'arn:aws:iam::aws:policy/service-role/AWSLambdaRole'
+        - "arn:aws:iam::aws:policy/AWSXrayWriteOnlyAccess"
+        - "arn:aws:iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs"
+        - "arn:aws:iam::aws:policy/service-role/AWSLambdaRole"
       Policies:
-        - PolicyName: LambdaDynamoDBPolicy
+        - PolicyName: "LambdaDynamoDBPolicy"
           PolicyDocument:
-            Version: 2012-10-17
+            Version: "2012-10-17"
             Statement:
-              - Effect: Allow
+              - Effect: "Allow"
                 Action:
-                  - 'dynamodb:PutItem'
-                  - 'dynamodb:DeleteItem'
-                  - 'dynamodb:GetItem'
-                  - 'dynamodb:Scan'
-                  - 'dynamodb:Query'
-                  - 'dynamodb:UpdateItem'
+                  - "dynamodb:PutItem"
+                  - "dynamodb:DeleteItem"
+                  - "dynamodb:GetItem"
+                  - "dynamodb:Scan"
+                  - "dynamodb:Query"
+                  - "dynamodb:UpdateItem"
                 Resource:
-                  - !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/*'
+                  - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/*"
+  CotsSnsRole:
+    Description: Creating service role in IAM for Amazon Cognito to send SNS messages
+    Type: "AWS::IAM::Role"
+    Properties:
+      RoleName: cots-sns-role
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service: "cognito-idp.amazonaws.com"
+            Action: "sts:AssumeRole"
+      Policies:
+        - PolicyName: "CognitoSNSPolicy"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: "Allow"
+                Action: "sns:publish"
+                Resource: "*"
+  CotsAuthorizedRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      RoleName: cots-authorized-role
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Deny"
+            Principal:
+              Federated: "cognito-identity.amazonaws.com"
+            Action: 'sts:AssumeRoleWithWebIdentity'
+  CotsUnauthorizedRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      RoleName: cots-unauthorized-role
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Deny"
+            Principal:
+              Federated: "cognito-identity.amazonaws.com"
+            Action: 'sts:AssumeRoleWithWebIdentity'
+
+  # COGNITO
+
+  ## COGNITO USER POOL
+  UserPool:
+    Type: "AWS::Cognito::UserPool"
+    UpdateReplacePolicy: Retain
+    Properties:
+      UserPoolName: "cots-user-pool"
+      Schema:
+        - Name: email
+          Required: true
+          Mutable: true
+      AutoVerifiedAttributes: email
+      EmailVerificationMessage: 'Your verification code is {####}'
+      EmailVerificationSubject: Your verification code
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 8
+          RequireLowercase: false
+          RequireNumbers: false
+          RequireSymbols: false
+          RequireUppercase: false
+      UsernameAttributes: email
+      MfaConfiguration: "OFF"
+      SmsVerificationMessage: 'Your verification code is {####}'
+      SmsConfiguration:
+        SnsCallerArn: !GetAtt CotsSnsRole.Arn
+        ExternalId: cots-external-id
+
+  ## COGNITO USER POOL CLIENTS
+  UserPoolClient:
+    Type: "AWS::Cognito::UserPoolClient"
+    Properties:
+      ClientName: cots-user-pool-client
+      GenerateSecret: true
+      RefreshTokenValidity: 30
+      UserPoolId: !Ref UserPool
+    DependsOn: UserPool
+
+  ## COGNITO IDENTITY POOL
+  IdentityPool:
+    Type: AWS::Cognito::IdentityPool
+    Properties:
+      IdentityPoolName: "cots-identity-pool"
+      CognitoIdentityProviders:
+        - ClientId:  !Ref UserPoolClient
+          ProviderName: !Sub
+            - cognito-idp.${region}.amazonaws.com/${client}
+            - { region: !Ref "AWS::Region",  client: !Ref UserPool}
+      AllowUnauthenticatedIdentities: false
+  IdentityPoolRoleMap:
+    Type: AWS::Cognito::IdentityPoolRoleAttachment
+    Properties:
+      IdentityPoolId: !Ref IdentityPool
+      Roles:
+        unauthenticated: !GetAtt CotsUnauthorizedRole.Arn
+        authenticated: !GetAtt CotsAuthorizedRole.Arn
+    DependsOn: IdentityPool
+
+  # API GATEWAY
 
   CotsApi:
-    Type: 'AWS::ApiGateway::RestApi'
+    Type: "AWS::ApiGateway::RestApi"
     Properties:
-      Name: 'cots-api'
-      Description: 'Command of the Sea Application Programming Interface Gateway'
+      Name: "cots-api"
+      Description: "Command of the Sea Application Programming Interface Gateway"
 
+  V1Resource:
+    Type: "AWS::ApiGateway::Resource"
+    Properties:
+      ParentId: !GetAtt CotsApi.RootResourceId
+      RestApiId: !Ref CotsApi
+      PathPart: "v1"
+
+  ## FIXME API GATEWAY RESOURCES
   RegistrationResource:
     Type: 'AWS::ApiGateway::Resource'
     Properties:
-      ParentId: !GetAtt CotsApi.RootResourceId
+      ParentId: !Ref V1Resource
       RestApiId: !Ref CotsApi
       PathPart: 'registration'
   AuthenticationResource:
     Type: 'AWS::ApiGateway::Resource'
     Properties:
-      ParentId: !GetAtt CotsApi.RootResourceId
+      ParentId: !Ref V1Resource
       RestApiId: !Ref CotsApi
       PathPart: 'authentication'
   PlayersResource:
     Type: 'AWS::ApiGateway::Resource'
     Properties:
-      ParentId: !GetAtt CotsApi.RootResourceId
+      ParentId: !Ref V1Resource
       RestApiId: !Ref CotsApi
       PathPart: 'players'
   PlayerResource:
@@ -65,6 +184,26 @@ Resources:
       RestApiId: !Ref CotsApi
       PathPart: 'my'
 
+  MatchesResource:
+    Type: 'AWS::ApiGateway::Resource'
+    Properties:
+      ParentId: !Ref V1Resource
+      RestApiId: !Ref CotsApi
+      PathPart: 'matches'
+  MatchResource:
+    Type: 'AWS::ApiGateway::Resource'
+    Properties:
+      ParentId: !Ref MatchesResource
+      RestApiId: !Ref CotsApi
+      PathPart: '{matchUuid}'
+  ShipsResource:
+    Type: 'AWS::ApiGateway::Resource'
+    Properties:
+      ParentId: !Ref MatchResource
+      RestApiId: !Ref CotsApi
+      PathPart: 'ships'
+
+  ## FIXME API GATEWAY METHODS
   RegistrationPostMethod:
     Type: 'AWS::ApiGateway::Method'
     Properties:
@@ -105,37 +244,18 @@ Resources:
       ResourceId: !Ref AuthenticationResource
       RestApiId: !Ref CotsApi
   PlayerGetMethod:
-    Type: 'AWS::ApiGateway::Method'
-    Properties:
-      AuthorizationType: 'NONE'
-      HttpMethod: 'GET'
-      Integration:
-        IntegrationHttpMethod: 'POST'
-        Type: 'AWS_PROXY'
-        Uri: !Sub
-          - 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${lambdaArn}/invocations'
-          - lambdaArn: !GetAtt PlayerRetrievalFunction.Arn
-      ResourceId: !Ref PlayerResource
-      RestApiId: !Ref CotsApi
-
-  MatchesResource:
-    Type: 'AWS::ApiGateway::Resource'
-    Properties:
-      ParentId: !GetAtt CotsApi.RootResourceId
-      RestApiId: !Ref CotsApi
-      PathPart: 'matches'
-  MatchResource:
-    Type: 'AWS::ApiGateway::Resource'
-    Properties:
-      ParentId: !Ref MatchesResource
-      RestApiId: !Ref CotsApi
-      PathPart: '{matchUuid}'
-  ShipsResource:
-    Type: 'AWS::ApiGateway::Resource'
-    Properties:
-      ParentId: !Ref MatchResource
-      RestApiId: !Ref CotsApi
-      PathPart: 'ships'
+          Type: 'AWS::ApiGateway::Method'
+          Properties:
+            AuthorizationType: 'NONE'
+            HttpMethod: 'GET'
+            Integration:
+              IntegrationHttpMethod: 'POST'
+              Type: 'AWS_PROXY'
+              Uri: !Sub
+                - 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${lambdaArn}/invocations'
+                - lambdaArn: !GetAtt PlayerRetrievalFunction.Arn
+            ResourceId: !Ref PlayerResource
+            RestApiId: !Ref CotsApi
 
   MatchesPutMethod:
     Type: 'AWS::ApiGateway::Method'
@@ -227,7 +347,7 @@ Resources:
         IntegrationResponses:
           - StatusCode: 200
             ResponseParameters:
-              method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+              method.response.header.Access-Control-Allow-Headers: "'Origin'"
               method.response.header.Access-Control-Allow-Methods: "'POST,OPTIONS'"
               method.response.header.Access-Control-Allow-Origin: "'*'"
             ResponseTemplates:
@@ -241,9 +361,9 @@ Resources:
           ResponseModels:
             application/json: 'Empty'
           ResponseParameters:
-            method.response.header.Access-Control-Allow-Headers: false
-            method.response.header.Access-Control-Allow-Methods: false
-            method.response.header.Access-Control-Allow-Origin: false
+            method.response.header.Access-Control-Allow-Headers: true
+            method.response.header.Access-Control-Allow-Methods: true
+            method.response.header.Access-Control-Allow-Origin: true
   AuthenticationOptionsMethod:
     Type: AWS::ApiGateway::Method
     Properties:
@@ -269,9 +389,9 @@ Resources:
           ResponseModels:
             application/json: 'Empty'
           ResponseParameters:
-            method.response.header.Access-Control-Allow-Headers: false
-            method.response.header.Access-Control-Allow-Methods: false
-            method.response.header.Access-Control-Allow-Origin: false
+            method.response.header.Access-Control-Allow-Headers: true
+            method.response.header.Access-Control-Allow-Methods: true
+            method.response.header.Access-Control-Allow-Origin: true
   PlayersOptionsMethod:
     Type: AWS::ApiGateway::Method
     Properties:
@@ -297,9 +417,9 @@ Resources:
           ResponseModels:
             application/json: 'Empty'
           ResponseParameters:
-            method.response.header.Access-Control-Allow-Headers: false
-            method.response.header.Access-Control-Allow-Methods: false
-            method.response.header.Access-Control-Allow-Origin: false
+            method.response.header.Access-Control-Allow-Headers: true
+            method.response.header.Access-Control-Allow-Methods: true
+            method.response.header.Access-Control-Allow-Origin: true
   MatchesOptionsMethod:
     Type: AWS::ApiGateway::Method
     Properties:
@@ -325,10 +445,11 @@ Resources:
           ResponseModels:
             application/json: 'Empty'
           ResponseParameters:
-            method.response.header.Access-Control-Allow-Headers: false
-            method.response.header.Access-Control-Allow-Methods: false
-            method.response.header.Access-Control-Allow-Origin: false
+            method.response.header.Access-Control-Allow-Headers: true
+            method.response.header.Access-Control-Allow-Methods: true
+            method.response.header.Access-Control-Allow-Origin: true
 
+  ## FIXME API GATEWAY DEPLOYMENT
   CotsApiGatewayDeployment:
     Type: 'AWS::ApiGateway::Deployment'
     DependsOn:
@@ -342,23 +463,30 @@ Resources:
       - 'MatchPostMethod'
       - 'MatchDeleteMethod'
       - 'ShipsPostMethod'
+      - 'RegistrationOptionsMethod'
+      - 'AuthenticationOptionsMethod'
+      - 'PlayersOptionsMethod'
+      - 'MatchesOptionsMethod'
     Properties:
       RestApiId: !Ref CotsApi
-      StageName: 'v1'
+      StageName: 'dev'
 
+  # LAMBDA
+
+  ## FIXME LAMBDA FUNCTIONS
   PlayerRegistrationFunction:
     Type: 'AWS::Lambda::Function'
     Properties:
       Code:
         S3Bucket: cots-functions
-        S3Key: cots-player-1.0-SNAPSHOT.zip
+        S3Key: cots-player.zip
       FunctionName: registerPlayer
       Handler: 'nz.org.vincenzo.cots.player.handler.RegistrationRequestHandler::handleRequest'
       MemorySize: '512'
       Timeout: '15'
       TracingConfig:
         Mode: Active
-      Runtime: java8
+      Runtime: java11
       Role: !GetAtt
         - CotsExecutionRole
         - Arn
@@ -367,14 +495,14 @@ Resources:
     Properties:
       Code:
         S3Bucket: cots-functions
-        S3Key: cots-player-1.0-SNAPSHOT.zip
+        S3Key: cots-player.zip
       FunctionName: login
       Handler: 'nz.org.vincenzo.cots.player.handler.LoginRequestHandler::handleRequest'
       MemorySize: '512'
       Timeout: '15'
       TracingConfig:
         Mode: Active
-      Runtime: java8
+      Runtime: java11
       Role: !GetAtt
         - CotsExecutionRole
         - Arn
@@ -383,14 +511,14 @@ Resources:
     Properties:
       Code:
         S3Bucket: cots-functions
-        S3Key: cots-player-1.0-SNAPSHOT.zip
+        S3Key: cots-player.zip
       FunctionName: retrievePlayer
       Handler: 'nz.org.vincenzo.cots.player.handler.PlayerRequestHandler::handleRequest'
       MemorySize: '512'
       Timeout: '15'
       TracingConfig:
         Mode: Active
-      Runtime: java8
+      Runtime: java11
       Role: !GetAtt
         - CotsExecutionRole
         - Arn
@@ -399,14 +527,14 @@ Resources:
     Properties:
       Code:
         S3Bucket: cots-functions
-        S3Key: cots-player-1.0-SNAPSHOT.zip
+        S3Key: cots-player.zip
       FunctionName: retrievePlayerByUuid
       Handler: 'nz.org.vincenzo.cots.player.handler.PlayerRetrievalRequestHandler::handleRequest'
       MemorySize: '512'
       Timeout: '15'
       TracingConfig:
         Mode: Active
-      Runtime: java8
+      Runtime: java11
       Role: !GetAtt
         - CotsExecutionRole
         - Arn
@@ -415,14 +543,14 @@ Resources:
     Properties:
       Code:
         S3Bucket: cots-functions
-        S3Key: cots-player-1.0-SNAPSHOT.zip
+        S3Key: cots-player.zip
       FunctionName: updatePlayer
       Handler: 'nz.org.vincenzo.cots.player.handler.ModificationRequestHandler::handleRequest'
       MemorySize: '512'
       Timeout: '15'
       TracingConfig:
         Mode: Active
-      Runtime: java8
+      Runtime: java11
       Role: !GetAtt
         - CotsExecutionRole
         - Arn
@@ -431,14 +559,14 @@ Resources:
     Properties:
       Code:
         S3Bucket: cots-functions
-        S3Key: cots-player-1.0-SNAPSHOT.zip
+        S3Key: cots-player.zip
       FunctionName: updateStatistics
       Handler: 'nz.org.vincenzo.cots.player.handler.StatisticsRequestHandler::handleRequest'
       MemorySize: '512'
       Timeout: '15'
       TracingConfig:
         Mode: Active
-      Runtime: java8
+      Runtime: java11
       Role: !GetAtt
         - CotsExecutionRole
         - Arn
@@ -447,14 +575,14 @@ Resources:
     Properties:
       Code:
         S3Bucket: cots-functions
-        S3Key: cots-player-1.0-SNAPSHOT.zip
+        S3Key: cots-player.zip
       FunctionName: logout
       Handler: 'nz.org.vincenzo.cots.player.handler.LogoutRequestHandler::handleRequest'
       MemorySize: '512'
       Timeout: '15'
       TracingConfig:
         Mode: Active
-      Runtime: java8
+      Runtime: java11
       Role: !GetAtt
         - CotsExecutionRole
         - Arn
@@ -463,14 +591,14 @@ Resources:
     Properties:
       Code:
         S3Bucket: cots-functions
-        S3Key: cots-match-1.0-SNAPSHOT.zip
+        S3Key: cots-match.zip
       FunctionName: hostMatch
       Handler: 'nz.org.vincenzo.cots.match.handler.MatchHostingRequestHandler::handleRequest'
       MemorySize: '512'
       Timeout: '15'
       TracingConfig:
         Mode: Active
-      Runtime: java8
+      Runtime: java11
       Role: !GetAtt
         - CotsExecutionRole
         - Arn
@@ -479,14 +607,14 @@ Resources:
     Properties:
       Code:
         S3Bucket: cots-functions
-        S3Key: cots-match-1.0-SNAPSHOT.zip
+        S3Key: cots-match.zip
       FunctionName: cancelMatch
       Handler: 'nz.org.vincenzo.cots.match.handler.MatchCancellationRequestHandler::handleRequest'
       MemorySize: '512'
       Timeout: '15'
       TracingConfig:
         Mode: Active
-      Runtime: java8
+      Runtime: java11
       Role: !GetAtt
         - CotsExecutionRole
         - Arn
@@ -495,14 +623,14 @@ Resources:
     Properties:
       Code:
         S3Bucket: cots-functions
-        S3Key: cots-match-1.0-SNAPSHOT.zip
+        S3Key: cots-match.zip
       FunctionName: retrieveMatches
       Handler: 'nz.org.vincenzo.cots.match.handler.MatchesRequestHandler::handleRequest'
       MemorySize: '512'
       Timeout: '15'
       TracingConfig:
         Mode: Active
-      Runtime: java8
+      Runtime: java11
       Role: !GetAtt
         - CotsExecutionRole
         - Arn
@@ -511,14 +639,14 @@ Resources:
     Properties:
       Code:
         S3Bucket: cots-functions
-        S3Key: cots-match-1.0-SNAPSHOT.zip
+        S3Key: cots-match.zip
       FunctionName: retrieveMatch
       Handler: 'nz.org.vincenzo.cots.match.handler.MatchRetrievalRequestHandler::handleRequest'
       MemorySize: '512'
       Timeout: '15'
       TracingConfig:
         Mode: Active
-      Runtime: java8
+      Runtime: java11
       Role: !GetAtt
         - CotsExecutionRole
         - Arn
@@ -527,14 +655,14 @@ Resources:
     Properties:
       Code:
         S3Bucket: cots-functions
-        S3Key: cots-match-1.0-SNAPSHOT.zip
+        S3Key: cots-match.zip
       FunctionName: handleMatch
       Handler: 'nz.org.vincenzo.cots.match.handler.MatchRequestHandler::handleRequest'
       MemorySize: '512'
       Timeout: '15'
       TracingConfig:
         Mode: Active
-      Runtime: java8
+      Runtime: java11
       Role: !GetAtt
         - CotsExecutionRole
         - Arn
@@ -543,18 +671,19 @@ Resources:
     Properties:
       Code:
         S3Bucket: cots-functions
-        S3Key: cots-match-1.0-SNAPSHOT.zip
+        S3Key: cots-match.zip
       FunctionName: moveShip
       Handler: 'nz.org.vincenzo.cots.match.handler.ShipMovementRequestHandler::handleRequest'
       MemorySize: '512'
       Timeout: '15'
       TracingConfig:
         Mode: Active
-      Runtime: java8
+      Runtime: java11
       Role: !GetAtt
         - CotsExecutionRole
         - Arn
 
+  ## FIXME LAMBDA PERMISSIONS
   PlayerRegistrationPermission:
     Type: AWS::Lambda::Permission
     Properties:
@@ -655,6 +784,8 @@ Resources:
         - 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${apiGateway}/*/*'
         - apiGateway: !Ref CotsApi
 
+  # DYNAMODB
+
   PlayerTable:
     Type: AWS::DynamoDB::Table
     Properties:
@@ -715,3 +846,162 @@ Resources:
         ReadCapacityUnits: '5'
         WriteCapacityUnits: '5'
       TableName: 'match'
+
+  # S3
+
+  ## S3 BUCKETS
+  CotsFunctionsBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    Properties:
+      BucketName: cots-functions
+      AccessControl: Private
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        IgnorePublicAcls: true
+        BlockPublicPolicy: true
+        RestrictPublicBuckets: true
+  CotsWebBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    Properties:
+      BucketName: cots-web
+      AccessControl: Private
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        IgnorePublicAcls: true
+        BlockPublicPolicy: true
+        RestrictPublicBuckets: true
+
+  ## FIXME S3 BUCKET POLICIES
+  CotsFunctionsBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref CotsFunctionsBucket
+      PolicyDocument:
+        Statement:
+          - Action:
+              - s3:GetObject
+            Effect: Allow
+            Resource: !Join [ "", [ "arn:aws:s3:::", !Ref CotsFunctionsBucket, "/*" ] ]
+            Principal:
+              CanonicalUser: !GetAtt CotsWebOriginAccessIdentity.S3CanonicalUserId
+  CotsWebBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref CotsWebBucket
+      PolicyDocument:
+        Statement:
+          - Action:
+              - s3:GetObject
+            Effect: Allow
+            Resource: !Join [ "", [ "arn:aws:s3:::", !Ref CotsWebBucket, "/*" ] ]
+            Principal:
+              CanonicalUser: !GetAtt CotsWebOriginAccessIdentity.S3CanonicalUserId
+
+  # CLOUDFRONT
+
+  ## CLOUDFRONT OAI
+  CotsWebOriginAccessIdentity:
+    Type: AWS::CloudFront::CloudFrontOriginAccessIdentity
+    Properties:
+      CloudFrontOriginAccessIdentityConfig:
+        Comment: CloudFront to S3 OAI
+
+  ## CLOUDFRONT DISTRIBUTION
+  CotsWebDistribution:
+    Type: AWS::CloudFront::Distribution
+    DependsOn:
+      - CotsWebBucket
+      - CotsApiGatewayDeployment
+      - CotsWebOriginAccessIdentity
+    Properties:
+      DistributionConfig:
+        Aliases:
+          - 'cots.vincenzo.org.nz'
+        DefaultCacheBehavior:
+          Compress: true
+          ForwardedValues:
+            QueryString: false
+          TargetOriginId: cots-web-bucket
+          ViewerProtocolPolicy: redirect-to-https
+        CacheBehaviors:
+          - AllowedMethods:
+              - DELETE
+              - GET
+              - HEAD
+              - OPTIONS
+              - PATCH
+              - POST
+              - PUT
+            CachedMethods:
+              - GET
+              - HEAD
+              - OPTIONS
+            Compress: true
+            ForwardedValues:
+              QueryString: true
+              Headers:
+                - '*'
+            PathPattern: '/dev/v1/*'
+            TargetOriginId: cots-api
+            ViewerProtocolPolicy: https-only
+        DefaultRootObject: index.html
+        CustomErrorResponses:
+          - ErrorCachingMinTTL: 300
+            ErrorCode: 403
+            ResponseCode: 404
+            ResponsePagePath: /404.html
+        Enabled: true
+        HttpVersion: http2
+        Origins:
+          - DomainName:
+              !Join [ "", [ !Ref CotsWebBucket, ".s3.amazonaws.com" ] ]
+            Id: cots-web-bucket
+            S3OriginConfig:
+              OriginAccessIdentity:
+                !Join [ "", [ "origin-access-identity/cloudfront/", !Ref CotsWebOriginAccessIdentity ] ]
+          - DomainName: !Join
+              - ""
+              -
+                - !Ref CotsApi
+                - ".execute-api."
+                - !Sub "${AWS::Region}"
+                - ".amazonaws.com"
+            Id: cots-api
+            CustomOriginConfig:
+              OriginProtocolPolicy: https-only
+            OriginPath: /dev
+        PriceClass: PriceClass_200
+
+Outputs:
+  IdentityPoolId:
+    Value: !Ref 'IdentityPool'
+    Description:  Id for the identity pool
+  IdentityPoolName:
+    Value: !GetAtt IdentityPool.Name
+  HostedUIDomain:
+    Value: !If [ShouldNotCreateEnvResources, !Ref hostedUIDomainName, !Join ['-',[!Ref hostedUIDomainName, !Ref env]]]
+  OAuthMetadata:
+    Value: !Ref oAuthMetadata
+  UserPoolId:
+    Value: !Ref 'UserPool'
+    Description:  Id for the user pool
+  UserPoolName:
+    Value: !Ref userPoolName
+  AppClientIDWeb:
+    Value: !Ref 'UserPoolClientWeb'
+    Description: The user pool app client id for web
+  AppClientID:
+    Value: !Ref 'UserPoolClient'
+    Description: The user pool app client id
+  AppClientSecret:
+    Value: !GetAtt UserPoolClientInputs.appSecret

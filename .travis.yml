@@ -1,5 +1,7 @@
 language: java
+
 jdk: openjdk11
+
 dist: xenial
 
 before_cache:
@@ -25,3 +27,33 @@ script:
 
 after_success:
   - bash <(curl -s https://codecov.io/bash)
+
+deploy:
+  - provider: s3
+    access_key_id: $ACCESS_KEY_ID
+    secret_access_key: $SECRET_KEY_ID
+    region: $REGION
+    bucket: $FUNCTIONS_BUCKET
+    skip_cleanup: true
+    local_dir: cots-match/build/distributions
+  - provider: s3
+    access_key_id: $ACCESS_KEY_ID
+    secret_access_key: $SECRET_KEY_ID
+    region: $REGION
+    bucket: $FUNCTIONS_BUCKET
+    skip_cleanup: true
+    local_dir: cots-player/build/distributions
+  - provider: s3
+    access_key_id: $ACCESS_KEY_ID
+    secret_access_key: $SECRET_KEY_ID
+    region: $REGION
+    bucket: $AWS_BUCKET
+    skip_cleanup: true
+    local_dir: cots-aws
+#  - provider: s3
+#    access_key_id: $ACCESS_KEY_ID
+#    secret_access_key: $SECRET_KEY_ID
+#    region: $REGION
+#    bucket: $WEB_BUCKET
+#    skip_cleanup: true
+#    local_dir: cots-web/build
