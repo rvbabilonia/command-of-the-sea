@@ -7,6 +7,7 @@ Parameters:
 Resources:
   # IAM
 
+  ## IAM ROLES
   CotsExecutionRole:
     Description: Creating service role in IAM for AWS Lambda
     Type: "AWS::IAM::Role"
@@ -151,14 +152,13 @@ Resources:
       Name: "cots-api"
       Description: "Command of the Sea Application Programming Interface Gateway"
 
+  ## FIXME API GATEWAY RESOURCES
   V1Resource:
     Type: "AWS::ApiGateway::Resource"
     Properties:
       ParentId: !GetAtt CotsApi.RootResourceId
       RestApiId: !Ref CotsApi
       PathPart: "v1"
-
-  ## FIXME API GATEWAY RESOURCES
   RegistrationResource:
     Type: 'AWS::ApiGateway::Resource'
     Properties:
@@ -786,6 +786,7 @@ Resources:
 
   # DYNAMODB
 
+  ## DYNAMODB TABLES
   PlayerTable:
     Type: AWS::DynamoDB::Table
     Properties:
@@ -870,6 +871,21 @@ Resources:
     DeletionPolicy: Retain
     Properties:
       BucketName: cots-web
+      AccessControl: Private
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        IgnorePublicAcls: true
+        BlockPublicPolicy: true
+        RestrictPublicBuckets: true
+  CotsAwsBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    Properties:
+      BucketName: cots-aws
       AccessControl: Private
       BucketEncryption:
         ServerSideEncryptionConfiguration:
@@ -981,27 +997,3 @@ Resources:
               OriginProtocolPolicy: https-only
             OriginPath: /dev
         PriceClass: PriceClass_200
-
-Outputs:
-  IdentityPoolId:
-    Value: !Ref 'IdentityPool'
-    Description:  Id for the identity pool
-  IdentityPoolName:
-    Value: !GetAtt IdentityPool.Name
-  HostedUIDomain:
-    Value: !If [ShouldNotCreateEnvResources, !Ref hostedUIDomainName, !Join ['-',[!Ref hostedUIDomainName, !Ref env]]]
-  OAuthMetadata:
-    Value: !Ref oAuthMetadata
-  UserPoolId:
-    Value: !Ref 'UserPool'
-    Description:  Id for the user pool
-  UserPoolName:
-    Value: !Ref userPoolName
-  AppClientIDWeb:
-    Value: !Ref 'UserPoolClientWeb'
-    Description: The user pool app client id for web
-  AppClientID:
-    Value: !Ref 'UserPoolClient'
-    Description: The user pool app client id
-  AppClientSecret:
-    Value: !GetAtt UserPoolClientInputs.appSecret
