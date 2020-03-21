@@ -52,7 +52,7 @@ matrix:
           region: $REGION
           bucket: $WEB_BUCKET
           skip_cleanup: true
-          local_dir: cots-web/build
+          local_dir: build
 
 deploy:
   - provider: s3
