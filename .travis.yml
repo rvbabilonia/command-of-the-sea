@@ -21,6 +21,21 @@ matrix:
         - ./gradlew clean build
       after_success:
         - bash <(curl -s https://codecov.io/bash)
+      deploy:
+        - provider: s3
+          access_key_id: $ACCESS_KEY_ID
+          secret_access_key: $SECRET_ACCESS_KEY
+          region: $REGION
+          bucket: $FUNCTIONS_BUCKET
+          skip_cleanup: true
+          local_dir: cots-match/build/distributions
+        - provider: s3
+          access_key_id: $ACCESS_KEY_ID
+          secret_access_key: $SECRET_ACCESS_KEY
+          region: $REGION
+          bucket: $FUNCTIONS_BUCKET
+          skip_cleanup: true
+          local_dir: cots-player/build/distributions
     - language: node_js
       node_js: 13.9.0
       dist: xenial
@@ -30,22 +45,16 @@ matrix:
         - npm install
       script:
         - npm run build
+      deploy:
+        - provider: s3
+          access_key_id: $ACCESS_KEY_ID
+          secret_access_key: $SECRET_ACCESS_KEY
+          region: $REGION
+          bucket: $WEB_BUCKET
+          skip_cleanup: true
+          local_dir: cots-web/build
 
 deploy:
-  - provider: s3
-    access_key_id: $ACCESS_KEY_ID
-    secret_access_key: $SECRET_ACCESS_KEY
-    region: $REGION
-    bucket: $FUNCTIONS_BUCKET
-    skip_cleanup: true
-    local_dir: cots-match/build/distributions
-  - provider: s3
-    access_key_id: $ACCESS_KEY_ID
-    secret_access_key: $SECRET_ACCESS_KEY
-    region: $REGION
-    bucket: $FUNCTIONS_BUCKET
-    skip_cleanup: true
-    local_dir: cots-player/build/distributions
   - provider: s3
     access_key_id: $ACCESS_KEY_ID
     secret_access_key: $SECRET_ACCESS_KEY
@@ -53,13 +62,6 @@ deploy:
     bucket: $AWS_BUCKET
     skip_cleanup: true
     local_dir: cots-aws
-  - provider: s3
-    access_key_id: $ACCESS_KEY_ID
-    secret_access_key: $SECRET_ACCESS_KEY
-    region: $REGION
-    bucket: $WEB_BUCKET
-    skip_cleanup: true
-    local_dir: cots-web/build
 #  - provider: cloudformation
 #    access_key_id: $ACCESS_KEY_ID
 #    secret_access_key: $SECRET_ACCESS_KEY
