@@ -56,5 +56,5 @@ task buildZip(type: Zip) {
 build.dependsOn buildZip
 
 bootJar {
-    mainClassName = "nz.org.vincenzo.cots.match.MatchApplication"
+    mainClassName = "org.vincenzolabs.cots.match.MatchApplication"
 }
