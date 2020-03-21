@@ -1,11 +1,10 @@
-import React, { PropTypes, Component } from 'react';
+import React, { Component } from 'react';
 import axios from 'axios';
 class PlayerForm extends Component {
 
     constructor(props) {
         super(props);
         this.nickname = React.createRef();
-        this.avatar = React.createRef();
         this.state = {
             errors: [],
             status: 'new',
@@ -18,9 +17,9 @@ class PlayerForm extends Component {
 
     submitForm(e) {
         e.preventDefault();
-        const { nickname, avatar } = this;
+        const { nickname } = this;
         const errors = [];
-        if (nickname.current.value.length == 0) {
+        if (nickname.current.value.length === 0) {
             errors.push({
                 field: 'nickname',
                 message: 'Nickname cannot be null'
@@ -34,8 +33,7 @@ class PlayerForm extends Component {
         }
 
         const body = JSON.stringify({
-            nickname: nickname.current.value,
-            avatar: avatar.current.value
+            nickname: nickname.current.value
         });
 
         axios({method: 'POST', url: 'https://pqg138n96h.execute-api.ap-southeast-2.amazonaws.com/dev/v1/players', data: body, crossDomain: true,
@@ -64,7 +62,7 @@ class PlayerForm extends Component {
     }
 
     renderForm() {
-        const { nickname, avatar } = this;
+        const { nickname } = this;
 
         const nicknameErrors = this.getErrors('nickname');
 
