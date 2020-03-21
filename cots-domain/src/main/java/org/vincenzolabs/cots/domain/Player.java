@@ -1,7 +1,7 @@
 /*
  * This file is part of Command of the Sea.
  *
- * Copyright (c) 2019 Vincenzo
+ * Copyright (c) 2019 VincenzoLabs
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -21,7 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package nz.org.vincenzo.cots.domain;
+package org.vincenzolabs.cots.domain;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -63,8 +63,6 @@ public class Player {
 
     @Expose
     private Map<String, Statistics> tournamentStatistics = new HashMap<>();
-
-    private String accessToken;
 
     /**
      * Returns the universally unique identifier.
@@ -208,24 +206,6 @@ public class Player {
      */
     public void setTournamentStatistics(Map<String, Statistics> tournamentStatistics) {
         this.tournamentStatistics = tournamentStatistics;
-    }
-
-    /**
-     * Returns the access token.
-     *
-     * @return the access token
-     */
-    public String getAccessToken() {
-        return accessToken;
-    }
-
-    /**
-     * Sets the access token.
-     *
-     * @param accessToken the access token
-     */
-    public void setAccessToken(String accessToken) {
-        this.accessToken = accessToken;
     }
 
     @Override
