@@ -13,7 +13,7 @@ ext {
     awsLambdaJavaLog4JVersion = '1.0.0'
     slf4jVersion = '1.7.30'
     gsonVersion = '2.8.6'
-    langVersion = '3.9'
+    langVersion = '3.10'
 
     mockitoVersion = '3.3.3'
     assertjVersion = '3.15.0'

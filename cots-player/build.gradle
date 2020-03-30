@@ -14,7 +14,7 @@ ext {
     slf4jVersion = '1.7.30'
     gsonVersion = '2.8.6'
     jsonSimpleVersion = '1.1.1'
-    langVersion = '3.9'
+    langVersion = '3.10'
     validatorVersion = '1.6'
     jerseyVersion = '2.30.1'
 
