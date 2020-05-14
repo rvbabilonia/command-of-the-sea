@@ -9,7 +9,7 @@ plugins {
 ext {
     awsVersion = '2.10.91'
     awsLambdaJavaCoreVersion = '1.2.0'
-    awsLambdaJavaEventsVersion = '2.2.7'
+    awsLambdaJavaEventsVersion = '2.2.9'
     awsLambdaJavaLog4JVersion = '1.0.0'
     slf4jVersion = '1.7.30'
     gsonVersion = '2.8.6'
