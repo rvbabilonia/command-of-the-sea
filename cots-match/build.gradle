@@ -17,7 +17,7 @@ ext {
 
     mockitoVersion = '3.3.3'
     assertjVersion = '3.15.0'
-    dynamoV2Version = '5.0.4'
+    dynamoV2Version = '5.1.1'
 }
 
 dependencies {
