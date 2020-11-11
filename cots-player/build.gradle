@@ -19,7 +19,7 @@ ext {
     jerseyVersion = '2.30.1'
 
     mockitoVersion = '3.3.3'
-    assertjVersion = '3.15.0'
+    assertjVersion = '3.18.1'
     dynamoV2Version = '5.0.4'
 }
 
